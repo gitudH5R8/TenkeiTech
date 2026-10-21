@@ -16,6 +16,6 @@
 		"requiredMods": ["gregtech", "appliedenergistics2", "ae2fc", "serverutilities"],
 		"dependencies": [],
 		"dependants": [],
-		"useDependencyInformation": true
+		"useDependencyInformation": false
 	}]
 }

@@ -49,6 +49,8 @@ dependencies {
 
     // Optional crop-stick harvesting, matching GTNH 2.9.0-beta-3.
     devOnlyNonPublishable("com.github.GTNewHorizons:CropsNH:2.0.114:dev")
+    // CropsNH's postInit compatibility class links this API even when the mod is absent.
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BetterBuildersWands:0.13.12-GTNH:dev")
 
     // Optional quest skipping integration, matching GTNH 2.9.0-beta-3.
     devOnlyNonPublishable("com.github.GTNewHorizons:BetterQuesting:3.8.84-GTNH:dev")
