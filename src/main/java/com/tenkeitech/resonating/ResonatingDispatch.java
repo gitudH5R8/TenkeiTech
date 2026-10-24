@@ -107,7 +107,7 @@ public final class ResonatingDispatch {
     }
 
     public boolean accept(ResonatingPatternData details, MEInventoryCrafting table, BaseActionSource source,
-        boolean blocking, boolean requireCompleteCapacity) {
+        boolean blocking, boolean requireCompleteCapacity, com.tenkeitech.blockingfilter.BlockingFilter filter) {
         if (busy()) return false;
         List<IAEStack<?>> remaining = new ArrayList<>();
         for (int i = 0; i < table.getSizeInventory(); i++) {
@@ -127,7 +127,7 @@ public final class ResonatingDispatch {
             if (target == null) return false;
             var inventory = ResonatingTargetAccess.inventory(target, details.getPattern(), source, expected);
             if (inventory == null) return false;
-            if (blocking && ResonatingTargetAccess.blocked(target, expected)) return false;
+            if (blocking && ResonatingTargetAccess.blocked(target, expected, filter)) return false;
             long needed = expected.getStackSize();
             for (IAEStack<?> actual : remaining) {
                 if (!actual.isSameType(expected)) continue;

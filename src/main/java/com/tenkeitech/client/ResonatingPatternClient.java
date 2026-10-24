@@ -5,9 +5,7 @@
 package com.tenkeitech.client;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -96,19 +94,8 @@ public final class ResonatingPatternClient {
         double x = view.lastTickPosX + (view.posX - view.lastTickPosX) * event.partialTicks;
         double y = view.lastTickPosY + (view.posY - view.lastTickPosY) * event.partialTicks;
         double z = view.lastTickPosZ + (view.posZ - view.lastTickPosZ) * event.partialTicks;
-        GL11.glPushAttrib(
-            GL11.GL_ENABLE_BIT | GL11.GL_LINE_BIT
-                | GL11.GL_CURRENT_BIT
-                | GL11.GL_COLOR_BUFFER_BIT
-                | GL11.GL_DEPTH_BUFFER_BIT);
+        BlockFaceOverlay.begin();
         try {
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDisable(GL11.GL_CULL_FACE);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDepthMask(false);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             java.util.List<ResonatingPatternData.Target> drawn = new java.util.ArrayList<>();
             for (int i = 0; i < (card ? ResonatingBindingCardData.SLOTS : details.getAEInputs().length); i++) {
                 if (i == selected || !card && details.getAEInputs()[i] == null) continue;
@@ -123,19 +110,9 @@ public final class ResonatingPatternClient {
             }
             if (target == null || !visible(mc, target)) return;
             drawFace(target, x, y, z, true);
-            GL11.glLineWidth(2F);
-            GL11.glColor4f(0.1F, 0.9F, 1F, 1F);
-            RenderGlobal.drawOutlinedBoundingBox(
-                AxisAlignedBB.getBoundingBox(
-                    target.x - x - 0.002,
-                    target.y - y - 0.002,
-                    target.z - z - 0.002,
-                    target.x - x + 1.002,
-                    target.y - y + 1.002,
-                    target.z - z + 1.002),
-                -1);
+            BlockFaceOverlay.outline(target.x, target.y, target.z, x, y, z);
         } finally {
-            GL11.glPopAttrib();
+            BlockFaceOverlay.end();
         }
     }
 
@@ -147,35 +124,7 @@ public final class ResonatingPatternClient {
 
     private static void drawFace(ResonatingPatternData.Target target, double cameraX, double cameraY, double cameraZ,
         boolean selected) {
-        double x = target.x - cameraX, y = target.y - cameraY, z = target.z - cameraZ;
-        double epsilon = 0.003;
-        GL11.glColor4f(selected ? 0.1F : 0.15F, selected ? 1F : 0.4F, selected ? 0.1F : 1F, 0.45F);
-        GL11.glBegin(GL11.GL_QUADS);
-        switch (target.side) {
-            case 0, 1 -> {
-                double plane = y + (target.side == 0 ? -epsilon : 1 + epsilon);
-                GL11.glVertex3d(x, plane, z);
-                GL11.glVertex3d(x + 1, plane, z);
-                GL11.glVertex3d(x + 1, plane, z + 1);
-                GL11.glVertex3d(x, plane, z + 1);
-            }
-            case 2, 3 -> {
-                double plane = z + (target.side == 2 ? -epsilon : 1 + epsilon);
-                GL11.glVertex3d(x, y, plane);
-                GL11.glVertex3d(x + 1, y, plane);
-                GL11.glVertex3d(x + 1, y + 1, plane);
-                GL11.glVertex3d(x, y + 1, plane);
-            }
-            case 4, 5 -> {
-                double plane = x + (target.side == 4 ? -epsilon : 1 + epsilon);
-                GL11.glVertex3d(plane, y, z);
-                GL11.glVertex3d(plane, y, z + 1);
-                GL11.glVertex3d(plane, y + 1, z + 1);
-                GL11.glVertex3d(plane, y + 1, z);
-            }
-            default -> {}
-        }
-        GL11.glEnd();
+        BlockFaceOverlay.face(target.x, target.y, target.z, target.side, cameraX, cameraY, cameraZ, selected);
     }
 
     @SubscribeEvent

@@ -23,7 +23,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.tenkeitech.TenkeiTech;
+import com.tenkeitech.autoextract.AutoExtractionHost;
+import com.tenkeitech.autoextract.AutoExtractionState;
 import com.tenkeitech.resonating.ResonatingDispatch;
+import com.tenkeitech.resonating.ResonatingHost;
 import com.tenkeitech.resonating.ResonatingInterfaceHosts;
 import com.tenkeitech.resonating.ResonatingPatternData;
 
@@ -43,7 +46,7 @@ import appeng.util.inv.MEInventoryCrafting;
 
 /** Hooks have an effect only for TenkeiTech patterns or their already accepted material. */
 @Mixin(value = DualityInterface.class, remap = false)
-public abstract class ResonatingInterfaceMixin {
+public abstract class ResonatingInterfaceMixin implements ResonatingHost {
 
     @Shadow
     @Final
@@ -88,6 +91,11 @@ public abstract class ResonatingInterfaceMixin {
     @Unique
     private final ResonatingDispatch tenkeitech$dispatch = new ResonatingDispatch();
 
+    @Override
+    public boolean tenkeitech$dispatchBusy() {
+        return tenkeitech$dispatch.busy();
+    }
+
     @Redirect(
         method = "provideCrafting",
         at = @At(
@@ -117,11 +125,12 @@ public abstract class ResonatingInterfaceMixin {
             return;
         }
         // Unknown addon hosts are rejected, never sent through the local fallback.
+        AutoExtractionState extraction = ((AutoExtractionHost) (Object) this).tenkeitech$extraction();
         if (!ResonatingInterfaceHosts.supported(iHost) || !gridProxy.isActive()
             || hasItemsToSend()
             || craftingList == null
             || !craftingList.contains(details)
-            || getCraftingLockedReason() != LockCraftingMode.NONE
+            || !extraction.pending() && getCraftingLockedReason() != LockCraftingMode.NONE
             || !(table instanceof MEInventoryCrafting material)) {
             cir.setReturnValue(false);
             return;
@@ -138,12 +147,17 @@ public abstract class ResonatingInterfaceMixin {
                     return;
                 }
             }
+            boolean blocking = isBlocking();
+            // A card's pending plan has already checked the complete pattern, including its remote bindings.
+            boolean repeating = extraction.pending() ? extraction.repeating()
+                : isSmartBlocking() && lastInputHash == details.hashCode();
             accepted = tenkeitech$dispatch.accept(
                 routed,
                 material,
                 mySource,
-                isBlocking() && !(isSmartBlocking() && lastInputHash == details.hashCode()),
-                isBlocking());
+                blocking && !repeating,
+                blocking,
+                ((com.tenkeitech.blockingfilter.BlockingFilterHost) (Object) this).tenkeitech$blockingFilter());
         } catch (RuntimeException exception) {
             TenkeiTech.LOG.warn("Rejected resonating input before accepting ownership", exception);
             accepted = false;
@@ -172,6 +186,9 @@ public abstract class ResonatingInterfaceMixin {
             cir.setReturnValue(true);
             return;
         }
+        // The extraction hook owns card admission; neither hook may override the other's busy result.
+        AutoExtractionState extraction = ((AutoExtractionHost) (Object) this).tenkeitech$extraction();
+        if (extraction.present() || extraction.busy()) return;
         // A pure remote interface must test remote blocking in pushPattern, not its unrelated neighbours.
         if (ResonatingInterfaceHosts.supported(iHost) && craftingList != null
             && !craftingList.isEmpty()

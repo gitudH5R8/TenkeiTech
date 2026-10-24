@@ -23,6 +23,11 @@ public final class ModItems {
 
     public static final com.tenkeitech.item.ItemResonatingPattern RESONATING_PATTERN = new com.tenkeitech.item.ItemResonatingPattern();
     public static final com.tenkeitech.item.ItemResonatingBindingCard RESONATING_BINDING_CARD = new com.tenkeitech.item.ItemResonatingBindingCard();
+    public static final com.tenkeitech.item.ItemAutoExtractionCard AUTO_EXTRACTION_CARD = new com.tenkeitech.item.ItemAutoExtractionCard();
+    public static final com.tenkeitech.item.ItemBlockingFilterCard BLOCKING_FILTER_CARD_PRECISE = new com.tenkeitech.item.ItemBlockingFilterCard(
+        true);
+    public static final com.tenkeitech.item.ItemBlockingFilterCard BLOCKING_FILTER_CARD_FUZZY = new com.tenkeitech.item.ItemBlockingFilterCard(
+        false);
 
     public static final ItemUniversalWand UNIVERSAL_WAND = new ItemUniversalWand();
     public static final Item PATTERN_BUFFER_COPY_TOOL = new ItemPatternBufferTransferTool(
@@ -40,6 +45,9 @@ public final class ModItems {
     public static void init() {
         GameRegistry.registerItem(RESONATING_PATTERN, "resonating_pattern");
         GameRegistry.registerItem(RESONATING_BINDING_CARD, "resonating_binding_card");
+        GameRegistry.registerItem(AUTO_EXTRACTION_CARD, "auto_extraction_card");
+        GameRegistry.registerItem(BLOCKING_FILTER_CARD_PRECISE, "blocking_filter_card_precise");
+        GameRegistry.registerItem(BLOCKING_FILTER_CARD_FUZZY, "blocking_filter_card_fuzzy");
         cpw.mods.fml.common.registry.EntityRegistry.registerModEntity(
             com.tenkeitech.universalwand.EntityUselessWandItem.class,
             "useless_wand_item",
@@ -56,6 +64,30 @@ public final class ModItems {
     }
 
     public static void registerRecipes() {
+        GameRegistry.addShapelessRecipe(
+            new ItemStack(BLOCKING_FILTER_CARD_PRECISE),
+            appeng.api.AEApi.instance()
+                .definitions()
+                .materials()
+                .advCard()
+                .maybeStack(1)
+                .get(),
+            net.minecraft.init.Items.comparator);
+        GameRegistry.addRecipe(new com.tenkeitech.recipe.RecipeBlockingFilterFuzzy());
+        GameRegistry.addShapelessRecipe(
+            new ItemStack(AUTO_EXTRACTION_CARD),
+            appeng.api.AEApi.instance()
+                .definitions()
+                .materials()
+                .cardLockCrafting()
+                .maybeStack(1)
+                .get(),
+            appeng.api.AEApi.instance()
+                .definitions()
+                .parts()
+                .importBus()
+                .maybeStack(1)
+                .get());
         RecipeCraftPatternBufferCutTool cutToolRecipe = new RecipeCraftPatternBufferCutTool();
         GameRegistry.addRecipe(cutToolRecipe);
         FMLCommonHandler.instance()

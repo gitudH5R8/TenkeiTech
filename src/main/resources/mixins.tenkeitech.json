@@ -8,6 +8,13 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "ae2.BlockingFilterInterfaceMixin",
+    "ae2.BlockingFilterUpgradeMixin",
+    "ae2.BlockingFilterSlotMixin",
+    "ae2.AutoExtractionInterfaceMixin",
+    "ae2.AutoExtractionFluidInterfaceMixin",
+    "ae2.AutoExtractionUpgradeMixin",
+    "ae2.AutoExtractionContainerMixin",
     "ae2.ResonatingInterfaceMixin",
     "ae2.ResonatingScheduledReasonMixin",
     "ae2.ResonatingPatternTerminalMixin",
@@ -56,6 +63,8 @@
     "minecraft.UniversalWandSpawnerActivationMixin"
   ],
   "client": [
+    "ae2.InterfaceUpgradeTooltipMixin",
+    "ae2.AutoExtractionGuiMixin",
     "gt5u.BlockOverlayRendererInvoker",
     "betterquesting.QuestSkipMenuMixin",
     "betterquesting.QuestSkipColorMixin",

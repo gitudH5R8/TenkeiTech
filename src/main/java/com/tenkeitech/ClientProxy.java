@@ -42,6 +42,8 @@ public class ClientProxy extends CommonProxy {
         MachineItemTooltip.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.tenkeitech.client.ResonatingPatternClient());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.tenkeitech.client.AutoExtractionCardClient());
         PatternModeTooltip.init();
         AutoTemplateSearchInput.init();
         UniversalWandKeyHandler.init();

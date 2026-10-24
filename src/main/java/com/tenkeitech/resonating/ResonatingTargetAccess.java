@@ -97,12 +97,14 @@ public final class ResonatingTargetAccess {
         }
     }
 
-    public static boolean blocked(Target target, appeng.api.storage.data.IAEStack<?> material) {
+    public static boolean blocked(Target target, appeng.api.storage.data.IAEStack<?> material,
+        com.tenkeitech.blockingfilter.BlockingFilter filter) {
         WorldServer world = DimensionManager.getWorld(target.dimension);
         if (world == null || !world.blockExists(target.x, target.y, target.z)) return true;
         if (material.isFluid()) {
             var tile = world.getTileEntity(target.x, target.y, target.z);
             if (!(tile instanceof net.minecraftforge.fluids.IFluidHandler handler)) return true;
+            if (!filter.empty()) return filter.hasBlockingFluid(handler, ForgeDirection.getOrientation(target.side));
             var tanks = handler.getTankInfo(ForgeDirection.getOrientation(target.side));
             if (tanks == null) return true;
             for (var tank : tanks) if (tank != null && tank.fluid != null && tank.fluid.amount > 0) return true;
@@ -111,6 +113,8 @@ public final class ResonatingTargetAccess {
         var adaptor = appeng.util.InventoryAdaptor
             .getAdaptor(world.getTileEntity(target.x, target.y, target.z), ForgeDirection.getOrientation(target.side));
         // Match AE's side-aware inventory test, not an extraction-only storage listing that may omit inputs.
-        return adaptor == null || adaptor.containsItems();
+        if (adaptor == null) return true;
+        if (filter.empty()) return adaptor.containsItems();
+        return filter.hasBlockingContents(adaptor);
     }
 }

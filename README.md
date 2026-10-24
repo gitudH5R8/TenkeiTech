@@ -96,6 +96,16 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 ### 工具与物品
 
+#### 阻挡过滤卡
+
+让 ME 接口与二合一接口在阻挡模式下忽略指定的物品与流体。
+在元件工作台配置过滤内容，提供精确 NBT 和忽略 NBT 两种版本，可独立使用。
+
+#### 自动抽取卡
+
+让 ME 接口与二合一接口自动从相邻库存回收样板产物，并在全部产物经当前接口返网后解锁。
+普通接口仅处理物品，二合一接口同时支持物品与流体；支持设置抽取面、智能阻挡及谐振样板。
+
 #### 谐振样板与谐振绑定卡
 
 谐振样板让 **ME 接口按输入槽远程发送材料**。一份配方中的物品和流体可以分别送往不同机器或不同侧面，
@@ -109,6 +119,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 再次点击同一侧面可解绑；潜行右键空气可清除当前槽位的绑定。按住 Shift 查看样板时，会按槽显示材料数量及绑定目标。
 **产物需要通过现有输出设施送回 ME，谐振样板不会自动回收。**
+可搭配自动抽取卡，从当前接口相邻输出库存回收；卡不会访问远程绑定位置。
 
 将谐振样板单独合成可还原原编码样板。也可放入样板终端编辑，但重新编码保存会移除谐振绑定；未保存直接取出则保留。
 
@@ -377,6 +388,16 @@ Each core allows **1024 bindings** by default. Waila can show network informatio
 
 ### Items and Tools
 
+#### Blocking Filter Cards
+
+Let ME and dual interfaces ignore selected items and fluids in blocking mode.
+Configure filters in the Cell Workbench; exact-NBT and ignore-NBT variants are available and work independently.
+
+#### Automatic Extraction Card
+
+Let ME and dual interfaces automatically recover pattern outputs from adjacent inventories and unlock once all outputs return through the same interface.
+ME interfaces handle items; dual interfaces handle items and fluids. Supports configurable extraction faces, smart blocking and Resonating Patterns.
+
 #### Resonating Pattern and Binding Card
 
 Resonating Patterns let ME Interfaces send each ingredient to a different location or face.
@@ -385,6 +406,7 @@ Bind every nonempty input before placing the pattern in a vanilla or AE2FC Fluid
 
 Right-click the same face again, or sneak-use in air, to clear the selected binding. Hold Shift over the pattern to see each input and destination.
 **Outputs must be returned by your existing automation.** Craft the pattern alone to restore its original type.
+An Automatic Extraction Card can recover outputs from inventories beside this interface; it does not access remote bindings.
 Editing and re-encoding it in a terminal also removes routing; removing it without saving preserves the bindings.
 
 Craft a **Resonating Binding Card** from an AE Memory Card and Ender Pearl. Sneak-scroll selects a slot, sneak-use switches item/fluid mode,
