@@ -33,6 +33,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 | 卷板机模板输入总线 | 自动提供七种电路对应的板材、箔加工配方 |
 | 无线 ME 网络核心 | 将 GT ME 仓室无线接入主 ME 网络 |
 | 无线 ME 网络收藏器 | 选择常用网络，方便批量绑定仓室 |
+| 更好的ME请求器 | 自动合成常用物品与流体，维持所需库存 |
 
 #### ME 超级样板总成
 
@@ -50,10 +51,10 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 多方块仍需另配物品／流体输出部件。共享补货会实际提取 ME 中的材料，设置超大目标量会影响性能。
 
-**配套镜像：**使用数据棒绑定总成，让镜像所在机器共享主机输入；使用螺丝刀切换配方读取顺序。
+**配套镜像**：使用数据棒绑定总成，让镜像所在机器共享主机输入；使用螺丝刀切换配方读取顺序。
 镜像与主机共用材料和样板。
 
-**鸿蒙之眼：**可额外安装一个超级样板总成或有效镜像，但仍需保留原本的一个普通物品输入总线和两个普通流体输入仓。
+**鸿蒙之眼**：可额外安装一个超级样板总成或有效镜像，但仍需保留原本的一个普通物品输入总线和两个普通流体输入仓。
 
 #### 固定模板与固定电路输入总线
 
@@ -66,16 +67,16 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 | 线缆机模板输入总线 | 1、2、3、4、8、12、16 | 单倍、双倍、细、四倍、八倍、十二倍、十六倍导线 |
 | 卷板机模板输入总线 | 1、2、3、4、5、9、10 | 板、双重板、三重板、四重板、五重板、致密板、箔 |
 
-- **绑定模板：**将固定模板总线与形状或模具无序合成，模板不会消耗；放置后可手持模板潜行右键重新绑定。
-- **选择配方：**打开 GUI 可按产物名称搜索，逐项、按电压层或整页启用／禁用。批量操作仍包含被搜索隐藏的配方。
-- **电路分页：**线缆机和卷板机各有七页独立设置与供料，所有已启用页面同时向 ME 提供配方。
-- **自动适配：**按机器实际电压筛选配方；适用的多模式机器可自动切换。缺少对应机器模式时，界面会提示并停用相关配方。
-- **退回材料：**界面提供手动退回按钮；更换模板或修改配方开关前，会先将相关材料退回 ME，未退完则保持原设置。
+- **绑定模板**：将固定模板总线与形状或模具无序合成，模板不会消耗；放置后可手持模板潜行右键重新绑定。
+- **选择配方**：打开 GUI 可按产物名称搜索，逐项、按电压层或整页启用／禁用。批量操作仍包含被搜索隐藏的配方。
+- **电路分页**：线缆机和卷板机各有七页独立设置与供料，所有已启用页面同时向 ME 提供配方。
+- **自动适配**：按机器实际电压筛选配方；适用的多模式机器可自动切换。缺少对应机器模式时，界面会提示并停用相关配方。
+- **退回材料**：界面提供手动退回按钮；更换模板或修改配方开关前，会先将相关材料退回 ME，未退完则保持原设置。
 
 总线主要覆盖同一种材料的一进一出加工，例如铜锭加工为铜导线；跨材料转换和不符合要求的配方不会自动加入。
 有效模板与绑定配方可在 NEI 中查看。
 
-**配套镜像：**用数据棒绑定同维度、已加载的模板总线，右键镜像打开主机设置。
+**配套镜像**：用数据棒绑定同维度、已加载的模板总线，右键镜像打开主机设置。
 镜像共享主机材料，可配合其他控制器使用。
 
 #### 无线 ME 网络核心与收藏器
@@ -91,6 +92,21 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 - 支持跨维度连接，由配置控制。**核心与目标都必须保持加载**，本模组不会主动加载区块。
 - 每个核心默认最多绑定 **1024 台设备**，可在配置中调整。
 - 安装 Waila 时，可直接查看核心、收藏器和已绑定仓室的网络信息。
+
+#### 更好的ME请求器
+
+把常用物品与流体加入补货清单，库存不足时自动发起合成，省去反复到终端手动下单。
+每种材料可独立设置目标库存、单次合成数量和检查间隔。一台默认管理 **256 项**，可在配置中提高至 **1024 项**。
+
+- **批量备货**：库存低于目标时，按设定数量合成一整批。例如目标 1000、每批 256，即使只差 10 个也会请求 256 个，因此库存可能超过目标。
+- **快速配置**：支持名称搜索、网格与长列表切换，可从 NEI 物品栏或书签拖入材料。数量支持 `1.5k` 等简写，间隔支持 `1m30s`；流体数量以 mB 计。
+- **按需启停**：左键编辑条目，右键启用或停用，也可点击三角按钮立即检查库存。停用、删除或更换材料会取消该项当前任务。
+- **CPU 优先选择**：默认优先使用设为“仅来自非玩家”的合成 CPU，没有合适的专用 CPU 时再使用“允许全部”的 CPU；可在配置中关闭此优先规则。
+- **查看工作状态**：界面显示当前库存、目标数量和任务状态，方便检查补货情况；Waila 也可查看 CPU 占用、任务及网络状态。
+- **搬移保留设置**：拆除后重新放置即可恢复补货清单，无需逐项重设；拆除时会取消原有任务。
+
+**获取方式**：与 AE2FC 原版 ME 请求器 **1:1 双向无序合成**，转换会清空配置。
+编辑时选入没有合成样板的材料会清空材料槽，继续确认将删除该项设置；取消编辑可保留原设置。
 
 <a id="items"></a>
 
@@ -123,7 +139,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 将谐振样板单独合成可还原原编码样板。也可放入样板终端编辑，但重新编码保存会移除谐振绑定；未保存直接取出则保留。
 
-**谐振绑定卡：**用 AE 内存卡与末影珍珠无序合成，适合给多张样板复用一组目标。
+**谐振绑定卡**：用 AE 内存卡与末影珍珠无序合成，适合给多张样板复用一组目标。
 潜行滚轮选槽，潜行右键切换物品／流体模式，右键方块绑定；与处理样板或谐振样板合成后，按两类输入各自顺序复制目标。
 卡不会消耗，未设置的位置保留样板原有绑定。
 
@@ -179,7 +195,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 开启建筑功能后，按住撤回键并右键最近操作范围或附近位置可撤回，默认保留最近 **3 次**，退出世界会清空历史。
 建造核心开启“AE 接入模式”时优先从绑定 ME 取材，不足再使用背包和副手，撤回时优先返还原 ME 网络。
 建造与天使核心可放置背包或副手中的 GT 机器物品，建造核心也可从绑定 ME 取材；不会复制已放置机器的库存或配置。
-**GT 机器放置不支持撤回，破坏核心不能拆除机器。**其他特殊方块的可用范围以预览为准。
+**GT 机器放置不支持撤回，破坏核心不能拆除机器**。其他特殊方块的可用范围以预览为准。
 
 ##### 战斗与辅助
 
@@ -247,8 +263,8 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 
 让支持多种加工模式的机器按配方自动切换，减少手动操作：
 
-- **超级样板总成及镜像：**从 NEE 转移 GT 配方后编码样板，即可按样板类别分批加工；悬停样板可查看类别。
-- **固定模板与固定电路总线：**按形状、模具或电路类别选择模式，无需额外编码样板。
+- **超级样板总成及镜像**：从 NEE 转移 GT 配方后编码样板，即可按样板类别分批加工；悬停样板可查看类别。
+- **固定模板与固定电路总线**：按形状、模具或电路类别选择模式，无需额外编码样板。
 
 机器必须具备对应模式。更换配方类别或使用没有类别的旧样板时，请重新从 NEE 转移并编码；只改材料不会更新类别。
 此功能不会恢复机器停机后已丢失的加工进度。
@@ -288,10 +304,11 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 | Waila | 机器库存及无线网络信息显示 |
 | BetterQuesting 3.8.84-GTNH | 跳过任务，放弃对应奖励 |
 
-通过 **Mods → TenkeiTech → Config** 调整样板上传、无线网络和无用工具设置；联机以服务器配置为准。
+通过 **Mods → TenkeiTech → Config** 调整样板上传、无线网络、更好的ME请求器和无用工具设置；联机以服务器配置为准。
 样板上传总开关修改后需要重启。机器 ID 如需避让冲突，应在首次创建世界前修改 config/TenkeiTech.cfg，已有世界不应随意改动。
+更好的ME请求器可调整条目上限、CPU 优先选择和任务限制；单人保存后生效，联机须修改服务器配置并重启。
 
-**服主注意：**在配置中禁用时间加速会清除本存档所有玩家的永久加速目标，重新启用不会恢复。
+**服主注意**：在配置中禁用时间加速会清除本存档所有玩家的永久加速目标，重新启用不会恢复。
 
 ### 社区项目与致谢
 
@@ -306,6 +323,7 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 - [**AE2-Crystal-Science**](https://github.com/ExtremelyFrozen/AE2-Crystal-Science)：谐振样板移植自该项目。
 - [**UselessMod**](https://github.com/SorrowMist/UselessMod)：无用之杖移植自该项目。
 - [**ConstructionWand**](https://github.com/Theta-Dev/ConstructionWand)：无用之杖的建筑功能参考了该项目。
+- [**AE2-PowerTools**](https://github.com/Aedial/AE2-PowerTools)：更好的ME请求器的功能移植与界面素材来源。
 
 除另有标注外，本项目原创代码与原创资源采用 [GNU GPL v3.0（仅限第 3 版）](LICENSE)。保留原有 LGPL 与 MIT 文件许可及第三方版权信息，详见 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
@@ -332,6 +350,7 @@ This is an unofficial community addon, not an official GTNH project.
 | Bender Template ME Input Bus | Provides plate and foil recipes for seven circuit settings |
 | Wireless ME Network Core | Connects GT ME hatches to the main network wirelessly |
 | Wireless ME Network Bookmark | Selects a favorite network for convenient hatch binding |
+| Better ME Requester | Keeps items and fluids stocked through automatic crafting |
 
 #### ME Super Pattern Buffer
 
@@ -385,6 +404,21 @@ No data stick is needed. Owners and teammates can bind, unbind and favorite netw
 Bound hatches and devices connected through them do not consume channels at the core; ordinary wired devices retain AE2's channel rules.
 Cross-dimension links are configurable, and **both ends must remain loaded**. TenkeiTech does not load chunks for you.
 Each core allows **1024 bindings** by default. Waila can show network information when installed.
+
+#### Better ME Requester
+
+Keep frequently used items and fluids on a restocking list and have them crafted automatically when stock runs low, saving repeated trips to the terminal to place orders.
+Set a separate stock target, batch size and check interval for each material. One requester manages **256 entries** by default, adjustable up to **1024** in the config.
+
+- **Batch restocking:** whenever stock falls below the target, request a full batch. With a target of 1000 and a batch size of 256, even a shortage of 10 triggers an order for 256, so stock may exceed the target.
+- **Quick setup:** search by name, switch between grid and tall list views, and drag materials from NEI's item list or bookmarks. Enter amounts such as `1.5k` and intervals such as `1m30s`; fluid quantities use mB.
+- **Individual controls:** left-click to edit, right-click to enable or disable, or click the triangle button to check stock immediately. Disabling, removing or changing a material cancels its current request.
+- **CPU preference:** by default, use suitable CPUs set to accept only non-player requests first, then fall back to CPUs that allow all requests. This preference can be disabled in the config.
+- **Status at a glance:** view current stock, targets and task status in the interface to check on restocking. Waila also shows CPU usage, tasks and network status.
+- **Keep settings when moving:** breaking and placing the requester restores its restocking list without configuring each entry again. Breaking cancels its existing requests.
+
+**Obtaining it:** use a **1:1 shapeless recipe** to convert to or from AE2FC's original ME Level Maintainer. Conversion clears the settings.
+Selecting a material without a crafting pattern clears the material slot. Confirming then deletes that entry; canceling the edit keeps its previous settings.
 
 ### Items and Tools
 
@@ -557,8 +591,9 @@ Multiplayer clients and servers need matching versions and dependencies. NEI sho
 | Waila | Machine stock and wireless network information |
 | BetterQuesting 3.8.84-GTNH | Skip quests and forfeit their rewards |
 
-Open **Mods → TenkeiTech → Config** for Pattern Upload, Wireless ME and Universal Wand settings. Server settings apply in multiplayer.
+Open **Mods → TenkeiTech → Config** for Pattern Upload, Wireless ME, Better ME Requester and Universal Wand settings. Server settings apply in multiplayer.
 Changing the upload master switch requires a restart. Resolve machine-ID conflicts in config/TenkeiTech.cfg before creating a world; avoid changing IDs in an existing save.
+Adjust the requester's entry limit, CPU preference and task limits in its config category. Saving applies in singleplayer; in multiplayer, edit the server configuration and restart.
 
 **For server owners:** disabling time acceleration in the config clears all players' permanent acceleration targets in this save. Enabling it again does not restore them.
 
@@ -574,5 +609,6 @@ Special thanks to the following projects and their authors:
 - [**AE2-Crystal-Science**](https://github.com/ExtremelyFrozen/AE2-Crystal-Science): Resonating Patterns are ported from this project.
 - [**UselessMod**](https://github.com/SorrowMist/UselessMod): Useless Tools / Universal Wand is ported from this project.
 - [**ConstructionWand**](https://github.com/Theta-Dev/ConstructionWand): the wand's building features draw on this project.
+- [**AE2-PowerTools**](https://github.com/Aedial/AE2-PowerTools): the source of the Better ME Requester port and GUI backgrounds.
 
 Unless otherwise marked, this project's original code and original assets use [GNU GPL v3.0 only](LICENSE). Existing LGPL and MIT file licenses and third-party copyright notices are retained; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

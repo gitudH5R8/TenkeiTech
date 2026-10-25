@@ -32,6 +32,7 @@ public class CommonProxy {
         Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
         com.tenkeitech.questskip.QuestSkipNetwork.init();
         ModItems.init();
+        com.tenkeitech.maintainer.MaintainerRegistration.preInit();
         com.tenkeitech.resonating.ResonatingNetwork.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.tenkeitech.resonating.ResonatingInteractionHandler());
@@ -73,6 +74,7 @@ public class CommonProxy {
 
     // load "Do your mod setup. Build whatever data structures you care about. Register recipes." (Remove if not needed)
     public void init(FMLInitializationEvent event) {
+        com.tenkeitech.maintainer.MaintainerRegistration.init();
         ModMetaTileEntities.init();
         ModItems.registerRecipes();
         AutoTemplateInteractionHandler.register();
@@ -88,9 +90,17 @@ public class CommonProxy {
     // postInit "Handle interaction with other mods, complete your setup based on this." (Remove if not needed)
     public void postInit(FMLPostInitializationEvent event) {
         com.tenkeitech.recipe.MachineRecipes.register();
+        com.tenkeitech.maintainer.MaintainerRegistration.recipe();
     }
 
     public void loadComplete(FMLLoadCompleteEvent event) {}
+
+    public Object createMaintainerGui(net.minecraft.entity.player.EntityPlayer player,
+        com.tenkeitech.maintainer.TileBetterLevelMaintainer tile) {
+        return null;
+    }
+
+    public void receiveMaintainerData(com.tenkeitech.maintainer.MaintainerNetwork.Data data) {}
 
     public void receiveAutoTemplateCatalog(com.tenkeitech.autotemplate.AutoTemplateCatalogSync.Page page,
         net.minecraft.network.INetHandler connection) {}

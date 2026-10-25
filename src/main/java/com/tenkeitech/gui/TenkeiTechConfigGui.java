@@ -57,7 +57,7 @@ public final class TenkeiTechConfigGui extends GuiConfig {
                     .getBoolean(true),
                 ConfigGuiType.BOOLEAN,
                 "tenkeitech.config.questskip.enabled").setCustomListEntryClass(QuestSkipReadOnlyEntry.class));
-        String[] categories = { "patternupload", "wirelessae", "universalwand" };
+        String[] categories = { "patternupload", "wirelessae", "maintainer", "universalwand" };
         for (String category : categories) {
             if (configuration.hasCategory(category)) {
                 elements.add(new ConfigElement(configuration.getCategory(category)));

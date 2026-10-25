@@ -28,6 +28,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        com.tenkeitech.maintainer.MaintainerClient.init(event.getModConfigurationDirectory());
         if (Config.enablePatternUpload) PatternUploadPreferences.configure(event.getModConfigurationDirectory());
     }
 
@@ -84,9 +85,22 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
+    public Object createMaintainerGui(net.minecraft.entity.player.EntityPlayer player,
+        com.tenkeitech.maintainer.TileBetterLevelMaintainer tile) {
+        return new com.tenkeitech.maintainer.GuiBetterLevelMaintainer(
+            new com.tenkeitech.maintainer.ContainerBetterLevelMaintainer(player, tile));
+    }
+
+    @Override
+    public void receiveMaintainerData(com.tenkeitech.maintainer.MaintainerNetwork.Data data) {
+        com.tenkeitech.maintainer.MaintainerClient.receive(data);
+    }
+
+    @Override
     public void loadComplete(FMLLoadCompleteEvent event) {
         super.loadComplete(event);
         if (Loader.isModLoaded("NotEnoughItems")) AutoTemplateNEIIntegration.init();
+        if (Loader.isModLoaded("NotEnoughItems")) com.tenkeitech.maintainer.MaintainerNEI.init();
     }
 
     @Override

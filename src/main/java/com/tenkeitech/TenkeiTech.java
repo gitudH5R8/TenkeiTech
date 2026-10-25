@@ -34,6 +34,9 @@ public class TenkeiTech {
     public static final String MOD_NAME = "TenkeiTech";
     public static final Logger LOG = LogManager.getLogger(MOD_ID);
 
+    @Mod.Instance(MOD_ID)
+    public static TenkeiTech instance;
+
     @SidedProxy(clientSide = "com.tenkeitech.ClientProxy", serverSide = "com.tenkeitech.CommonProxy")
     public static CommonProxy proxy;
 
@@ -74,6 +77,7 @@ public class TenkeiTech {
 
     @Mod.EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
+        com.tenkeitech.maintainer.MaintainerNetwork.clear();
         com.tenkeitech.questskip.QuestSkipNetwork.clear();
         com.tenkeitech.universalwand.UniversalWandRightClick.clearAll();
         UniversalWandMiningHandler.finishAllChains();

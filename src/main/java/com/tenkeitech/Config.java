@@ -5,6 +5,7 @@
 package com.tenkeitech;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -21,7 +22,13 @@ public class Config {
     private static final String CATEGORY_MACHINES = "machines";
     private static final String CATEGORY_PATTERN_UPLOAD = "patternUpload";
     private static final String CATEGORY_WIRELESS_AE = "wirelessAe";
+    private static final String CATEGORY_MAINTAINER = "maintainer";
     private static final String CATEGORY_UNIVERSAL_WAND = "universalwand";
+    public static final int MAX_MAINTAINER_ENTRIES = 1024;
+    private static final int DEFAULT_MAINTAINER_ENTRIES = 256;
+    private static final int DEFAULT_MAINTAINER_CALCULATIONS = 2;
+    private static final int DEFAULT_MAINTAINER_ACTIVE_JOBS = 16;
+    private static final int DEFAULT_MAINTAINER_CALCULATION_TIMEOUT = 200;
     public static volatile long universalWandFeatureMask = -1L;
     private static final int DEFAULT_WAND_BLOCKS_PER_TICK = 16;
     private static final double DEFAULT_WAND_MINING_EXHAUSTION = 0.025D;
@@ -47,6 +54,11 @@ public class Config {
     public static int wirelessReconnectIntervalTicks = 100;
     public static int wirelessMembersProcessedPerTick = 16;
     public static int wirelessMaxMembers = 1_024;
+    public static volatile int maintainerCalculationsPerNetwork = DEFAULT_MAINTAINER_CALCULATIONS;
+    public static volatile int maintainerMaxEntries = DEFAULT_MAINTAINER_ENTRIES;
+    public static volatile int maintainerActiveJobs = DEFAULT_MAINTAINER_ACTIVE_JOBS;
+    public static volatile int maintainerCalculationTimeout = DEFAULT_MAINTAINER_CALCULATION_TIMEOUT;
+    public static volatile boolean maintainerPreferNonPlayerCpus = true;
     public static volatile int universalWandBlocksPerTick = DEFAULT_WAND_BLOCKS_PER_TICK;
     public static volatile double universalWandMiningExhaustion = DEFAULT_WAND_MINING_EXHAUSTION;
     public static volatile boolean universalWandDropToPlayer = true;
@@ -212,6 +224,41 @@ public class Config {
             "Maximum saved wireless target devices per core.");
 
         configureAllCategories(configuration);
+        ConfigCategory maintainer = configuration.getCategory(CATEGORY_MAINTAINER);
+        maintainerMaxEntries = Math.max(
+            1,
+            Math.min(
+                MAX_MAINTAINER_ENTRIES,
+                maintainer.get("maxEntries")
+                    .getInt(DEFAULT_MAINTAINER_ENTRIES)));
+        maintainer.get("maxEntries")
+            .set(maintainerMaxEntries);
+        maintainerCalculationsPerNetwork = Math.max(
+            1,
+            Math.min(
+                32,
+                maintainer.get("calculationsPerNetwork")
+                    .getInt(DEFAULT_MAINTAINER_CALCULATIONS)));
+        maintainerActiveJobs = Math.max(
+            1,
+            Math.min(
+                256,
+                maintainer.get("activeJobs")
+                    .getInt(DEFAULT_MAINTAINER_ACTIVE_JOBS)));
+        maintainerCalculationTimeout = Math.max(
+            20,
+            Math.min(
+                12000,
+                maintainer.get("calculationTimeoutTicks")
+                    .getInt(DEFAULT_MAINTAINER_CALCULATION_TIMEOUT)));
+        maintainer.get("calculationsPerNetwork")
+            .set(maintainerCalculationsPerNetwork);
+        maintainer.get("activeJobs")
+            .set(maintainerActiveJobs);
+        maintainer.get("calculationTimeoutTicks")
+            .set(maintainerCalculationTimeout);
+        maintainerPreferNonPlayerCpus = maintainer.get("preferNonPlayerCpus")
+            .getBoolean(true);
         long features = 0L;
         for (com.tenkeitech.universalwand.UniversalWandFeature feature : com.tenkeitech.universalwand.UniversalWandFeature
             .values()) {
@@ -276,10 +323,88 @@ public class Config {
 
     /** Config files do not persist language keys, so both loading paths must apply them. */
     public static void configureAllCategories(Configuration configuration) {
+        configuration.getCategory(CATEGORY_MACHINES)
+            .setPropertyOrder(
+                new ArrayList<>(
+                    Arrays.asList(
+                        "superPatternBufferMetaTileId",
+                        "superPatternBufferProxyMetaTileId",
+                        "wirelessNetworkCoreMetaTileId",
+                        "wirelessNetworkBookmarkMetaTileId",
+                        "autoTemplateInputMetaTileId",
+                        "autoTemplateInputProxyMetaTileId",
+                        "wiremillTemplateInputMetaTileId",
+                        "benderTemplateInputMetaTileId",
+                        "condensateAssemblyDebugMetaTileId",
+                        "longInputExposureStackLimit")));
         localizeCategory(configuration, "etc", "tenkeitech.config.other");
         localizeCategory(configuration, CATEGORY_PATTERN_UPLOAD, "tenkeitech.config.patternupload");
         localizeCategory(configuration, CATEGORY_WIRELESS_AE, "tenkeitech.config.wirelessae");
+        configureMaintainerCategory(configuration);
         configureUniversalWandCategory(configuration);
+    }
+
+    /** Shared defaults, ranges and tooltips for file loading and the in-game requester settings. */
+    private static void configureMaintainerCategory(Configuration configuration) {
+        // Categories are rebuilt during synchronization: seed missing properties from the just-read runtime values,
+        // while keeping the GUI's reset defaults independent of those values.
+        configuration
+            .get(
+                CATEGORY_MAINTAINER,
+                "maxEntries",
+                maintainerMaxEntries,
+                "Maximum configured entries per requester: 1-1024. Default: 256. Applies after saving. "
+                    + "Lowering this limit keeps existing entries and only restricts adding new entries.",
+                1,
+                MAX_MAINTAINER_ENTRIES)
+            .setDefaultValue(DEFAULT_MAINTAINER_ENTRIES);
+        configuration
+            .get(
+                CATEGORY_MAINTAINER,
+                "calculationsPerNetwork",
+                maintainerCalculationsPerNetwork,
+                "Maximum concurrent requester crafting calculations per AE network. Default: 2. Applies after saving.",
+                1,
+                32)
+            .setDefaultValue(DEFAULT_MAINTAINER_CALCULATIONS);
+        configuration
+            .get(
+                CATEGORY_MAINTAINER,
+                "activeJobs",
+                maintainerActiveJobs,
+                "Maximum active requests, calculations and pending plans per requester. Default: 16. "
+                    + "Lowering this limit does not cancel existing requests. Applies after saving.",
+                1,
+                256)
+            .setDefaultValue(DEFAULT_MAINTAINER_ACTIVE_JOBS);
+        configuration
+            .get(
+                CATEGORY_MAINTAINER,
+                "calculationTimeoutTicks",
+                maintainerCalculationTimeout,
+                "Crafting calculation timeout in ticks (20 ticks = 1 second). Default: 200. Applies after saving.",
+                20,
+                12000)
+            .setDefaultValue(DEFAULT_MAINTAINER_CALCULATION_TIMEOUT);
+        configuration.get(
+            CATEGORY_MAINTAINER,
+            "preferNonPlayerCpus",
+            maintainerPreferNonPlayerCpus,
+            "Prefer eligible non-player-only CPUs for Better ME Requester orders, falling back to allow-all CPUs. "
+                + "Default: true. Disable to use native AE CPU selection. Applies to the next submission after saving; "
+                + "running requests are unchanged.")
+            .setDefaultValue(true);
+        localizeCategory(configuration, CATEGORY_MAINTAINER, "tenkeitech.config.maintainer");
+        ConfigCategory category = configuration.getCategory(CATEGORY_MAINTAINER);
+        category.setComment("");
+        category.setPropertyOrder(
+            new ArrayList<>(
+                Arrays.asList(
+                    "preferNonPlayerCpus",
+                    "maxEntries",
+                    "calculationsPerNetwork",
+                    "activeJobs",
+                    "calculationTimeoutTicks")));
     }
 
     private static void localizeCategory(Configuration configuration, String name, String languageKey) {
