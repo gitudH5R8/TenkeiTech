@@ -310,7 +310,8 @@ public final class UniversalWandAccelerationHandler {
                     UPDATING.remove();
                 }
                 remaining -= untilComplete;
-                if (gtMaximum(meta) == maximum && gtProgress(meta) >= boundary) break;
+                // A completed 1-tick recipe can restart at zero, which is also its completion boundary.
+                if (gtMaximum(meta) == maximum && gtProgress(meta) >= Math.max(1, boundary)) break;
             }
             return true;
         }
