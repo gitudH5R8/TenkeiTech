@@ -3655,9 +3655,15 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
 
         PatternSlot<MTESuperCraftingInputME> targetSlot = findPatternSlot(patternDetails);
         if (targetSlot == null) {
+            scheduledReason = ScheduledReason.SOMETHING_STUCK;
+            ICraftingPatternDetails lookup = patternDetails instanceof TransformedPatternDetails transformed
+                ? transformed.getRawDetails()
+                : patternDetails;
+            // Matching wildcard slots may be busy with another generated recipe; retry without rebuilding AE's cache.
+            if (patternDetailsPatternSlotMap.containsKey(lookup)) return false;
+
             // The pattern was removed or replaced after AE built its crafting-provider cache. Never route into an
             // unrelated slot; fail until the queued pattern-change event rebuilds the cache.
-            scheduledReason = ScheduledReason.SOMETHING_STUCK;
             long currentTick = getBaseMetaTileEntity().getTimer();
             if (currentTick - lastStalePatternLogTick >= 200) {
                 GTLoggers.GT_FML_LOGGER.warn(
