@@ -4,6 +4,8 @@
  */
 package com.tenkeitech.mixin.ae2;
 
+import net.minecraft.item.ItemStack;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
@@ -13,7 +15,7 @@ import appeng.client.gui.implementations.GuiInterfaceTerminal;
 public interface InterfaceTerminalNameInvoker {
 
     @Invoker("translateRawName")
-    static String translate(String name, String suffix) {
+    static String translate(String name, String suffix, ItemStack displayRep) {
         throw new AssertionError();
     }
 }

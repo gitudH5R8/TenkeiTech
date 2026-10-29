@@ -83,7 +83,7 @@ public final class QuestSkipNetwork {
         var mod = Loader.instance()
             .getIndexedModList()
             .get("betterquesting");
-        return mod != null && "3.8.84-GTNH".equals(mod.getVersion());
+        return mod != null && "3.8.89-GTNH".equals(mod.getVersion());
     }
 
     public static void init() {

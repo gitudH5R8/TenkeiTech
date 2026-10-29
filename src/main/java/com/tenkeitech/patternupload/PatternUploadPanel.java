@@ -38,6 +38,7 @@ public final class PatternUploadPanel extends Gui {
     private final PatternUploadRecipeContext context;
     private final List<Control> controls = new ArrayList<>();
     private final List<Integer> mappingIndices = new ArrayList<>();
+    private final GuiTextField currentRecipe = new GuiTextField(mc.fontRenderer, 0, 0, 240, 18);
     private final GuiTextField search = new GuiTextField(mc.fontRenderer, 0, 0, 240, 18);
     private final GuiTextField categoryInput = new GuiTextField(mc.fontRenderer, 0, 0, 120, 20);
     private final GuiTextField mapping = new GuiTextField(mc.fontRenderer, 0, 0, 120, 20);
@@ -48,6 +49,7 @@ public final class PatternUploadPanel extends Gui {
     private boolean open, waiting, selectionPending, dirty = true;
     private boolean localSearchActive;
     private final java.util.Map<Integer, java.util.Set<String>> exactCategoryNames = new java.util.HashMap<>();
+    private final java.util.Map<Integer, java.util.Set<String>> recipeCategoryIds = new java.util.HashMap<>();
     private boolean categoryAutoPending;
     private boolean candidatesReceived;
     private java.util.Map<Integer, String> recipeCategories = Collections.emptyMap();
@@ -60,6 +62,9 @@ public final class PatternUploadPanel extends Gui {
     public PatternUploadPanel(ContainerPatternTerm container, PatternUploadRecipeContext context) {
         this.container = container;
         this.context = context;
+        currentRecipe.setMaxStringLength(PatternUploadNetwork.MAX_ROUTING_TEXT);
+        currentRecipe.setEnabled(false);
+        currentRecipe.setDisabledTextColour(0xBBBBBB);
         search.setMaxStringLength(PatternUploadNetwork.MAX_ROUTING_TEXT);
         mapping.setMaxStringLength(PatternUploadNetwork.MAX_ROUTING_TEXT);
         categoryInput.setMaxStringLength(PatternUploadNetwork.MAX_ROUTING_TEXT);
@@ -137,6 +142,8 @@ public final class PatternUploadPanel extends Gui {
             category = "crafting";
             categoryLabel = tr("crafting_category");
         }
+        currentRecipe.setText(category.isEmpty() ? tr("no_category") : category);
+        currentRecipe.setCursorPositionZero();
     }
 
     private void loadPreferences(boolean reload) {
@@ -154,6 +161,7 @@ public final class PatternUploadPanel extends Gui {
         candidatesReceived = false;
         categoryAutoPending = false;
         exactCategoryNames.clear();
+        recipeCategoryIds.clear();
         requestId = REQUESTS.incrementAndGet();
         nonce = 0;
         waiting = true;
@@ -190,11 +198,12 @@ public final class PatternUploadPanel extends Gui {
         if (!localSearchActive) search.setText(message.searchText);
         allEntries = Collections.unmodifiableList(received);
         exactCategoryNames.clear();
+        recipeCategoryIds.clear();
         recipeCategories = cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")
-            ? PatternUploadNeiCategories.lookup(received, exactCategoryNames)
+            ? PatternUploadNeiCategories.lookup(received, exactCategoryNames, recipeCategoryIds)
             : Collections.emptyMap();
         tooltipOffset = 0;
-        entries = localSearchActive ? filteredEntries(search.getText()) : allEntries;
+        entries = filteredEntries(search.getText());
         pages = Math.max(1, (entries.size() + PatternUploadNetwork.PAGE_SIZE - 1) / PatternUploadNetwork.PAGE_SIZE);
         page = Math.min(page, pages - 1);
         status = !message.complete ? key("scan_limit")
@@ -207,10 +216,11 @@ public final class PatternUploadPanel extends Gui {
             && mode == TARGETS
             && preferences != null
             && preferences.autoUpload()
+            && exactCategoryNames.size() == allEntries.size()
             && category.equals(context.category(container, mc.theWorld))) {
             List<PatternUploadNetwork.TargetEntry> matches = new ArrayList<>();
             for (PatternUploadNetwork.TargetEntry entry : allEntries) {
-                if (exactCategoryMatch(entry, categoryLabel)) matches.add(entry);
+                if (matchesRecipeType(entry)) matches.add(entry);
             }
             // Failed NEI lookups omit exact-category entries and must not enable the fallback.
             if (matches.isEmpty() && exactCategoryNames.size() == allEntries.size()
@@ -289,10 +299,17 @@ public final class PatternUploadPanel extends Gui {
             PatternUploadRouting.filter(
                 allEntries,
                 entry -> entry.routingName + " "
-                    + PatternUploadNames.display(entry.terminalName, entry.terminalSuffix)
+                    + PatternUploadNames.display(entry)
                     + " "
                     + recipeCategories.getOrDefault(entry.groupIndex, ""),
-                query));
+                query,
+                this::matchesRecipeType));
+    }
+
+    private boolean matchesRecipeType(PatternUploadNetwork.TargetEntry entry) {
+        return mode == TARGETS && !category.isEmpty()
+            && recipeCategoryIds.getOrDefault(entry.groupIndex, Collections.emptySet())
+                .contains(category);
     }
 
     public void key(char character, int keyCode) {
@@ -528,10 +545,13 @@ public final class PatternUploadPanel extends Gui {
 
     public void draw(int screenWidth, int screenHeight, int mouseX, int mouseY) {
         if (!open) return;
-        if (width != screenWidth || height != screenHeight) {
+        if (width != screenWidth || height != screenHeight
+            || geometry == null
+            || (geometry.recipe != null) != (mode == TARGETS)) {
             width = screenWidth;
             height = screenHeight;
-            geometry = new PatternUploadLayout(width, height);
+            geometry = new PatternUploadLayout(width, height, mode == TARGETS);
+            if (geometry.recipe != null) position(currentRecipe, geometry.recipe);
             position(search, geometry.search);
             position(categoryInput, geometry.categoryInput);
             position(mapping, geometry.mapping);
@@ -545,6 +565,7 @@ public final class PatternUploadPanel extends Gui {
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glColor4f(1, 1, 1, 1);
             // No background rectangle or default gradient: only our controls are drawn over the world.
+            if (geometry.recipe != null) currentRecipe.drawTextBox();
             search.drawTextBox();
             if (mode == MAPPINGS) categoryInput.drawTextBox();
             mapping.drawTextBox();
@@ -559,9 +580,11 @@ public final class PatternUploadPanel extends Gui {
                 0xFFFFFF);
             if (!status.isEmpty())
                 centered(StatCollector.translateToLocal(status), geometry.statusY, width - 12, 0xFFD080);
-            String tooltip = geometry.search.contains(mouseX, mouseY) ? tr("search_help")
-                : mode == MAPPINGS && geometry.categoryInput.contains(mouseX, mouseY) ? tr("mapping_category_help")
-                    : geometry.mapping.contains(mouseX, mouseY) ? tr("mapping_help") : "";
+            String tooltip = geometry.recipe != null && geometry.recipe.contains(mouseX, mouseY)
+                ? tr("current_recipe_help")
+                : geometry.search.contains(mouseX, mouseY) ? tr("search_help")
+                    : mode == MAPPINGS && geometry.categoryInput.contains(mouseX, mouseY) ? tr("mapping_category_help")
+                        : geometry.mapping.contains(mouseX, mouseY) ? tr("mapping_help") : "";
             for (Control control : controls) if (control.box.contains(mouseX, mouseY)) tooltip = control.text;
             categoryHovered = false;
             if (mode != MAPPINGS && !waiting) {
@@ -571,7 +594,7 @@ public final class PatternUploadPanel extends Gui {
                     if (geometry.rows[row].contains(mouseX, mouseY)) {
                         PatternUploadNetwork.TargetEntry entry = entries.get(start + row);
                         String categories = recipeCategories.getOrDefault(entry.groupIndex, "");
-                        tooltip = PatternUploadNames.display(entry.terminalName, entry.terminalSuffix) + "\n"
+                        tooltip = PatternUploadNames.display(entry) + "\n"
                             + (categories.isEmpty() ? tr("no_recipe_types") : categories);
                         if (mode == TARGETS) tooltip += "\n" + tr("pin_help");
                         categoryHovered = true;
@@ -633,7 +656,10 @@ public final class PatternUploadPanel extends Gui {
         rounded(box.x + 2, box.y + 2, box.w - 4, box.h - 4, fill);
         boolean exact = mode == TARGETS && control.id >= 0
             && page * PatternUploadNetwork.PAGE_SIZE + control.id < entries.size()
-            && exactCategoryMatch(entries.get(page * PatternUploadNetwork.PAGE_SIZE + control.id), search.getText());
+            && (matchesRecipeType(entries.get(page * PatternUploadNetwork.PAGE_SIZE + control.id))
+                || exactCategoryMatch(
+                    entries.get(page * PatternUploadNetwork.PAGE_SIZE + control.id),
+                    search.getText()));
         drawCenteredString(
             mc.fontRenderer,
             mc.fontRenderer.trimStringToWidth(control.text, box.w - 6),
@@ -703,7 +729,7 @@ public final class PatternUploadPanel extends Gui {
                         (preferences != null && preferences.isPinned(entry.routingName) ? "* " : "")
                             + StatCollector.translateToLocalFormatted(
                                 key("target_format"),
-                                PatternUploadNames.display(entry.terminalName, entry.terminalSuffix),
+                                PatternUploadNames.display(entry),
                                 entry.freeSlots,
                                 entry.providerCount),
                         ready && (mode != ADD_MAPPING || !entry.routingName.isEmpty()));
@@ -752,7 +778,7 @@ public final class PatternUploadPanel extends Gui {
     private String providerDisplayName(String rawName) {
         for (PatternUploadNetwork.TargetEntry entry : allEntries) {
             if (entry.routingName.equals(rawName) || entry.name.equals(rawName)) {
-                return PatternUploadNames.display(entry.terminalName, entry.terminalSuffix);
+                return PatternUploadNames.display(entry);
             }
         }
         return PatternUploadNames.display(rawName, "");

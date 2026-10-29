@@ -506,7 +506,7 @@ final class PatternUploadService {
                             complete = false;
                             continue;
                         }
-                        group = new TargetGroup(groupingName, terminalName, terminalSuffix);
+                        group = new TargetGroup(groupingName, terminalName, terminalSuffix, view.getDisplayRep());
                         grouped.put(groupingName, group);
                     } catch (RuntimeException exception) {
                         complete = false;
@@ -699,6 +699,7 @@ final class PatternUploadService {
                     group.routingName,
                     group.terminalName,
                     group.terminalSuffix,
+                    group.terminalDisplayRep,
                     group.freeSlots,
                     group.members.size(),
                     new ArrayList<>(group.machineIds)));
@@ -790,14 +791,16 @@ final class PatternUploadService {
         private final String originalName;
         private final String terminalName;
         private final String terminalSuffix;
+        private final ItemStack terminalDisplayRep;
         private final Set<Integer> machineIds = new java.util.TreeSet<>();
         private final String routingName;
         private final List<TargetMember> members = new ArrayList<>();
         private int freeSlots;
 
-        private TargetGroup(String name, String terminalName, String terminalSuffix) {
+        private TargetGroup(String name, String terminalName, String terminalSuffix, ItemStack terminalDisplayRep) {
             this.terminalName = terminalName;
             this.terminalSuffix = terminalSuffix;
+            this.terminalDisplayRep = terminalDisplayRep == null ? null : terminalDisplayRep.copy();
             this.name = sanitizeName(name);
             this.originalName = name;
             this.routingName = name.length() <= PatternUploadNetwork.MAX_ROUTING_TEXT && name.indexOf('\n') < 0

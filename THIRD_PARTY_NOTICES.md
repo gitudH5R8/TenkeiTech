@@ -36,6 +36,6 @@ Four GUI backgrounds in `assets/tenkeitech/textures/guis/` are copied unchanged 
 Copyright (c) 2026 Aedial. License: [MIT](LICENSES/AE2-PowerTools-MIT.txt).
 
 The three interface upgrade cards use dedicated 32x32 RGBA textures derived from AE2's long upgrade-card frame, with no runtime tint. Their PNG metadata also records the source, copyright and license.
-AE2FluidCraft Rework `1.5.106-gtnh` remains an external dependency; the fluid-interface Mixin only wraps its existing insertion calls.
+AE2FluidCraft Rework `1.5.113-gtnh` remains an external dependency; the fluid-interface Mixin only wraps its existing insertion calls.
 The Better ME Requester references its textures at runtime; no AE2FC textures are copied or bundled.
 Functional ports and references are credited in [README.md](README.md).

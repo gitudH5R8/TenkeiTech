@@ -42,8 +42,8 @@ public final class PatternUploadNetwork {
     public static final int MAX_ROUTING_TEXT = 256;
     private static final int MAX_SERVER_TASKS = 256;
     private static final int MAX_TASKS_PER_TICK = 64;
-    // Search terms change the routing packet: both ends must use this version of the upload protocol.
-    private static final SimpleNetworkWrapper CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel("tenkei_upload7");
+    // Target display icons change the packet: both ends must use this version of the upload protocol.
+    private static final SimpleNetworkWrapper CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel("tenkei_upload8");
     private static final Queue<Runnable> SERVER_TASKS = new ConcurrentLinkedQueue<>();
     private static final AtomicInteger SERVER_TASK_COUNT = new AtomicInteger();
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean();
@@ -274,17 +274,19 @@ public final class PatternUploadNetwork {
         public final String routingName;
         public final String terminalName;
         public final String terminalSuffix;
+        public final ItemStack terminalDisplayRep;
         public final int freeSlots;
         public final int providerCount;
         public final List<Integer> machineIds;
 
         public TargetEntry(int groupIndex, String name, String routingName, String terminalName, String terminalSuffix,
-            int freeSlots, int providerCount, List<Integer> machineIds) {
+            ItemStack terminalDisplayRep, int freeSlots, int providerCount, List<Integer> machineIds) {
             this.groupIndex = groupIndex;
             this.name = name;
             this.routingName = routingName;
             this.terminalName = terminalName;
             this.terminalSuffix = terminalSuffix;
+            this.terminalDisplayRep = terminalDisplayRep == null ? null : terminalDisplayRep.copy();
             if (terminalName == null || terminalSuffix == null
                 || terminalName.length() > 4096
                 || terminalSuffix.length() > 4096) throw new IllegalArgumentException("Invalid terminal name payload");
@@ -338,6 +340,7 @@ public final class PatternUploadNetwork {
                         readRoutingText(buffer),
                         ByteBufUtils.readUTF8String(buffer),
                         ByteBufUtils.readUTF8String(buffer),
+                        ByteBufUtils.readItemStack(buffer),
                         buffer.readInt(),
                         buffer.readInt(),
                         readMachineIds(buffer)));
@@ -360,6 +363,7 @@ public final class PatternUploadNetwork {
                 ByteBufUtils.writeUTF8String(buffer, entry.routingName);
                 ByteBufUtils.writeUTF8String(buffer, entry.terminalName);
                 ByteBufUtils.writeUTF8String(buffer, entry.terminalSuffix);
+                ByteBufUtils.writeItemStack(buffer, entry.terminalDisplayRep);
                 buffer.writeInt(entry.freeSlots);
                 buffer.writeInt(entry.providerCount);
                 buffer.writeInt(entry.machineIds.size());

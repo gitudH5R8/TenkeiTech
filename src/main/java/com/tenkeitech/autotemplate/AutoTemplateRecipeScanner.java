@@ -265,7 +265,7 @@ public final class AutoTemplateRecipeScanner {
 
         ItemData data = GTOreDictUnificator.getAssociation(stack);
         if (GTOreDictUnificator.isBlacklisted(stack)
-            || data != null && (data.mBlackListed || data.hasValidPrefixMaterialData())) return unified;
+            || data != null && (data.hasExplicitComposition || data.hasValidPrefixMaterialData())) return unified;
 
         // GT's ignoreTinkerConstruct skips associations, so get(stack) returns the original.
         // Resolve one unambiguous Forge identity against a registered GT preferred item instead.

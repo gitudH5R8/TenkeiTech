@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /** Manual exact mappings and automatic search over the full bounded candidate set. */
@@ -50,10 +51,16 @@ final class PatternUploadRouting {
     }
 
     static <T> List<T> filter(List<T> candidates, Function<T, String> name, String query) {
+        return filter(candidates, name, query, candidate -> false);
+    }
+
+    static <T> List<T> filter(List<T> candidates, Function<T, String> name, String query,
+        Predicate<T> additionalMatch) {
         String needle = normalize(query);
         List<T> result = new ArrayList<>();
         for (T candidate : candidates) {
-            if (normalize(name.apply(candidate)).contains(needle)) result.add(candidate);
+            if (additionalMatch.test(candidate) || normalize(name.apply(candidate)).contains(needle))
+                result.add(candidate);
         }
         return result;
     }

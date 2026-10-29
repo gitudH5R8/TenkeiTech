@@ -55,15 +55,17 @@ final class PatternUploadDuplicateGuard {
     static boolean samePatternData(NBTTagCompound expected, NBTTagCompound installed) {
         if (expected == null || installed == null || !expected.hasKey("in", 9) || !expected.hasKey("out", 9))
             return false;
-        // Only the fixed AE2 encoder's attribution is cosmetic. Preserve every other (including unknown) key.
+        // AE2's author and encoding timestamp are cosmetic. Preserve every other (including unknown) key.
         for (Object key : expected.func_150296_c()) {
             String name = (String) key;
-            if (!"author".equals(name) && !expected.getTag(name)
-                .equals(installed.getTag(name))) return false;
+            if (!"author".equals(name) && !"encodedAt".equals(name)
+                && !expected.getTag(name)
+                    .equals(installed.getTag(name)))
+                return false;
         }
         for (Object key : installed.func_150296_c()) {
             String name = (String) key;
-            if (!"author".equals(name) && !expected.hasKey(name)) return false;
+            if (!"author".equals(name) && !"encodedAt".equals(name) && !expected.hasKey(name)) return false;
         }
         return true;
     }

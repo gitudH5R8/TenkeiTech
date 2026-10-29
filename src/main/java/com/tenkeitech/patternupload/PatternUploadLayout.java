@@ -7,19 +7,22 @@ package com.tenkeitech.patternupload;
 /** Screen-relative layout in scaled GUI pixels, independent of the hidden AE terminal. */
 final class PatternUploadLayout {
 
-    final Box search, previous, next, reload, categoryInput, mapping, cancel, add, delete, showButton, autoUpload;
+    final Box recipe, search, previous, next, reload, categoryInput, mapping, cancel, add, delete, showButton,
+        autoUpload;
     final Box[] rows = new Box[6];
     final int statusY, pageY;
 
-    PatternUploadLayout(int width, int height) {
+    PatternUploadLayout(int width, int height, boolean showRecipe) {
         int listWidth = Math.min(240, width - 16);
-        int top = Math.max(8, Math.min(height / 2 - 95, height - 260));
+        int recipeHeight = showRecipe ? 23 : 0;
+        int top = Math.max(8, Math.min(height / 2 - 95 - recipeHeight, height - 260 - recipeHeight));
         int navY = height - 76;
-        int rowTop = top + 25;
+        int rowTop = top + recipeHeight + 25;
         statusY = navY - 11;
         // The final row needs no trailing gap: its height is at most rowStep - 3.
         int rowStep = Math.min(25, (statusY - rowTop + 3) / rows.length);
-        search = new Box((width - listWidth) / 2, top, listWidth, 18);
+        recipe = showRecipe ? new Box((width - listWidth) / 2, top, listWidth, 18) : null;
+        search = new Box((width - listWidth) / 2, top + recipeHeight, listWidth, 18);
         for (int row = 0; row < rows.length; row++)
             rows[row] = new Box(search.x, rowTop + row * rowStep, listWidth, Math.min(20, rowStep - 3));
         previous = new Box(width / 2 - 60, navY, 20, 20);

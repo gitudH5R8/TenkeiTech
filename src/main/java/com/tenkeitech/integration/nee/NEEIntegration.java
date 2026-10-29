@@ -16,6 +16,7 @@ import com.github.vfyjxf.nee.config.NEEConfig;
 import com.github.vfyjxf.nee.processor.GregTech5RecipeProcessor;
 import com.github.vfyjxf.nee.processor.IRecipeProcessor;
 import com.github.vfyjxf.nee.processor.RecipeProcessor;
+import com.github.vfyjxf.nee.utils.ItemUtils;
 import com.tenkeitech.ModItems;
 import com.tenkeitech.TenkeiTech;
 import com.tenkeitech.item.ItemPatternCatalystMarker;
@@ -23,6 +24,7 @@ import com.tenkeitech.item.ItemUniversalWand;
 
 import codechicken.nei.PositionedStack;
 import codechicken.nei.event.NEIConfigsLoadedEvent;
+import codechicken.nei.item.ItemFluidDisplay;
 import codechicken.nei.recipe.IRecipeHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import gregtech.api.enums.CondensateType;
@@ -30,7 +32,6 @@ import gregtech.api.recipe.RecipeCategory;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.AssemblyLineUtils;
 import gregtech.api.util.GTUtility;
-import gregtech.nei.FluidDisplayStackMode;
 import tectech.recipe.TecTechRecipeMaps;
 
 public final class NEEIntegration {
@@ -96,7 +97,7 @@ public final class NEEIntegration {
             List<PositionedStack> recipeInputs = new ArrayList<>();
             for (PositionedStack positionedStack : recipe.getIngredientStacks(recipeIndex)) {
                 if (positionedStack == null || positionedStack.item == null) continue;
-                if (filterCutterFluids && getFluidFromDisplayStack(positionedStack.item) != null) continue;
+                if (filterCutterFluids && ItemUtils.getFluidFromDisplayStack(positionedStack.item) != null) continue;
 
                 PositionedStack copy = positionedStack.copy();
                 if (replaceCondensate) replaceCondensateWithSource(copy);
@@ -108,7 +109,7 @@ public final class NEEIntegration {
                         else continue;
                     } else if (recordCatalysts && isAssemblyLineDataStick(copy.item)) {
                         continue;
-                    } else if (recordCatalysts && getFluidFromDisplayStack(copy.item) == null
+                    } else if (recordCatalysts && ItemUtils.getFluidFromDisplayStack(copy.item) == null
                         && !(copy.item.getItem() instanceof ItemUniversalWand)
                         && !(copy.item.getItem() instanceof ItemPatternCatalystMarker)) {
                             replaceWithCatalystMarker(copy);
@@ -146,7 +147,8 @@ public final class NEEIntegration {
         }
 
         private static void replaceCondensateWithSource(PositionedStack positionedStack) {
-            FluidStack displayed = GTUtility.getFluidFromDisplayStack(positionedStack.item);
+            // GT recipe overlays use NEI fluid display items in the fixed RC-2 dependencies.
+            FluidStack displayed = ItemUtils.getFluidFromDisplayStack(positionedStack.item);
             if (displayed == null || displayed.getFluid() == null || displayed.amount <= 0) return;
 
             CondensateType type = CondensateType.getCondensateType(displayed.getFluid());
@@ -156,7 +158,8 @@ public final class NEEIntegration {
             source = source.copy();
             source.amount = displayed.amount;
 
-            ItemStack replacement = GTUtility.getFluidDisplayStack(source, FluidDisplayStackMode.SHOWN);
+            ItemStack replacement = ItemFluidDisplay.createStack(source);
+            if (replacement == null) return;
             positionedStack.item = replacement;
             positionedStack.items = new ItemStack[] { replacement.copy() };
         }

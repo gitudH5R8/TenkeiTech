@@ -91,7 +91,7 @@ public final class QuestSkipClient {
         if (!quest.isComplete(playerId)) return;
         var info = quest.getCompletionInfo(playerId);
         if (info == null || !info.getBoolean(QuestSkipService.MARKER)) return;
-        // BQ 3.8.84 places the completion status immediately after the quest title.
+        // BQ places the completion status immediately after the quest title.
         lines.set(1, EnumChatFormatting.GREEN + I18n.format("tenkeitech.questskip.skipped"));
     }
 
