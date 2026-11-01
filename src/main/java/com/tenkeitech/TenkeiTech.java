@@ -24,9 +24,9 @@ import cpw.mods.fml.common.event.FMLServerStoppingEvent;
     version = Tags.VERSION,
     name = TenkeiTech.MOD_NAME,
     guiFactory = "com.tenkeitech.gui.TenkeiTechGuiFactory",
-    dependencies = "required-after:gregtech@[5.09.54.205,);required-after:appliedenergistics2@[rv3-beta-1080-GTNH,);"
-        + "required-after:ae2fc@[1.5.113-gtnh,);"
-        + "required-after:serverutilities@[2.4.14,);after:backhand;after:cropsnh;after:betterquesting",
+    dependencies = "required-after:gregtech@[5.09.54.265,);required-after:appliedenergistics2@[rv3-beta-1095-GTNH,);"
+        + "required-after:ae2fc@[1.5.116-gtnh,);"
+        + "required-after:serverutilities@[2.4.22,);after:backhand;after:cropsnh;after:betterquesting",
     acceptedMinecraftVersions = "[1.7.10]")
 public class TenkeiTech {
 

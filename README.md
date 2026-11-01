@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Minecraft-1.7.10-62B47A" alt="Minecraft 1.7.10">
-  <img src="https://img.shields.io/badge/GTNH-2.9.0--beta--3-3F51B5" alt="GTNH 2.9.0-beta-3">
+  <img src="https://img.shields.io/badge/GTNH-2.9.0-3F51B5" alt="GTNH 2.9.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0--only-blue" alt="License: GPL-3.0-only"></a>
 </p>
 
@@ -281,14 +281,14 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 
 ### 安装与配置
 
-当前适配 **Minecraft 1.7.10 / GTNH 2.9.0-beta-3**，需要以下组件：
+当前适配 **Minecraft 1.7.10 / GTNH 2.9.0**，需要以下组件：
 
 | 必需组件 | 版本 |
 | --- | --- |
-| GT5-Unofficial | 5.09.54.133 |
-| Applied Energistics 2 | rv3-beta-1050-GTNH |
-| AE2 Fluid Crafting | 1.5.106-gtnh |
-| ServerUtilities | 2.4.9 |
+| GT5-Unofficial | 5.09.54.265 |
+| Applied Energistics 2 | rv3-beta-1095-GTNH |
+| AE2 Fluid Crafting | 1.5.116-gtnh |
+| ServerUtilities | 2.4.22 |
 
 1. 将普通玩家用 JAR 放入 GTNH 实例的 mods 文件夹，移除旧版本；不要安装带 -dev 或 -sources 的开发产物。
 2. 联机时，客户端与服务器安装相同版本，并保持依赖一致。
@@ -302,7 +302,7 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 | Crops NH | 无用之杖自动收获作物架 |
 | Ender IO | 无用之杖的传送功能 |
 | Waila | 机器库存及无线网络信息显示 |
-| BetterQuesting 3.8.84-GTNH | 跳过任务，放弃对应奖励 |
+| BetterQuesting ≥ 3.8.92 | 跳过任务，放弃对应奖励 |
 
 通过 **Mods → TenkeiTech → Config** 调整样板上传、无线网络、更好的ME请求器和无用工具设置；联机以服务器配置为准。
 样板上传总开关修改后需要重启。机器 ID 如需避让冲突，应在首次创建世界前修改 config/TenkeiTech.cfg，已有世界不应随意改动。
@@ -575,8 +575,8 @@ Supports some unlocked, incomplete quests that consume no items, fluids or XP; r
 
 ### Installation and Configuration
 
-The current target is **Minecraft 1.7.10 / GTNH 2.9.0-beta-3**, with GT5-Unofficial **5.09.54.133**,
-AE2 **rv3-beta-1050-GTNH**, AE2 Fluid Crafting **1.5.106-gtnh**, and ServerUtilities **2.4.9**.
+The current target is **Minecraft 1.7.10 / GTNH 2.9.0**, with GT5-Unofficial **5.09.54.265**,
+AE2 **rv3-beta-1095-GTNH**, AE2 Fluid Crafting **1.5.116-gtnh**, and ServerUtilities **2.4.22**.
 
 Place the regular player JAR in the instance's mods folder and remove older copies. Do not install -dev or -sources artifacts.
 Multiplayer clients and servers need matching versions and dependencies. NEI shows registered recipes and valid template variants.
@@ -589,7 +589,7 @@ Multiplayer clients and servers need matching versions and dependencies. NEI sho
 | Crops NH | Automatic crop-stick harvesting |
 | Ender IO | Wand teleportation |
 | Waila | Machine stock and wireless network information |
-| BetterQuesting 3.8.84-GTNH | Skip quests and forfeit their rewards |
+| BetterQuesting ≥ 3.8.92 | Skip quests and forfeit their rewards |
 
 Open **Mods → TenkeiTech → Config** for Pattern Upload, Wireless ME, Better ME Requester and Universal Wand settings. Server settings apply in multiplayer.
 Changing the upload master switch requires a restart. Resolve machine-ID conflicts in config/TenkeiTech.cfg before creating a world; avoid changing IDs in an existing save.

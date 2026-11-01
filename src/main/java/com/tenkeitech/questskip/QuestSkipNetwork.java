@@ -24,12 +24,15 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.common.versioning.VersionParser;
+import cpw.mods.fml.common.versioning.VersionRange;
 import cpw.mods.fml.relauncher.Side;
 import io.netty.buffer.ByteBuf;
 
 /** No BQ types in the transport: absent or unsupported versions remain safe. */
 public final class QuestSkipNetwork {
 
+    private static final VersionRange SUPPORTED_BQ_VERSIONS = VersionParser.parseRange("[3.8.92,)");
     private static final SimpleNetworkWrapper CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel("tt_questskip");
     private static final Map<UUID, Pending> REQUESTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Confirmation> CONFIRMATIONS = new ConcurrentHashMap<>();
@@ -83,7 +86,7 @@ public final class QuestSkipNetwork {
         var mod = Loader.instance()
             .getIndexedModList()
             .get("betterquesting");
-        return mod != null && "3.8.89-GTNH".equals(mod.getVersion());
+        return mod != null && SUPPORTED_BQ_VERSIONS.containsVersion(mod.getProcessedVersion());
     }
 
     public static void init() {
