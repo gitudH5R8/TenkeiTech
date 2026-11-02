@@ -66,6 +66,8 @@ public class CommonProxy {
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
             .register(new com.tenkeitech.universalwand.UniversalWandUtilityHandler());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.tenkeitech.universalwand.UniversalWandFlightMotionHandler());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(buildingHandler);
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()

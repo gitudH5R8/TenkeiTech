@@ -91,7 +91,7 @@ public final class UniversalWandKeyHandler {
         if (event.phase != cpw.mods.fml.common.gameevent.TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft.thePlayer == null) {
-            com.tenkeitech.universalwand.UniversalWandUtilityHandler.receiveClientSpeed(null, 0);
+            com.tenkeitech.universalwand.UniversalWandUtilityHandler.receiveClientSpeed(null, 0, false);
             lastChainHeld = false;
             lastUndoHeld = false;
             return;

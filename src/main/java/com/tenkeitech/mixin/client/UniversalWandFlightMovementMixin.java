@@ -21,7 +21,7 @@ public abstract class UniversalWandFlightMovementMixin {
     @Inject(method = "onLivingUpdate", at = @At("HEAD"))
     private void tenkeitech$dampenFlightInertia(CallbackInfo ci) {
         EntityPlayerSP player = (EntityPlayerSP) (Object) this;
-        if (!player.capabilities.isFlying || !UniversalWandUtilityHandler.hasFlight(player)) return;
+        if (!player.capabilities.isFlying || !UniversalWandUtilityHandler.shouldOverrideFlightSpeed(player)) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         GameSettings settings = minecraft.gameSettings;
         boolean inputActive = minecraft.currentScreen == null && minecraft.inGameHasFocus;

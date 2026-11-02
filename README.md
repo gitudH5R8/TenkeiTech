@@ -202,6 +202,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 - 范围攻击最大 **27×27**，上下各 3 格；强制击杀与追加范围攻击会排除玩家及已识别友方。
 - 斩首为支持的骷髅、凋灵骷髅、僵尸和苦力怕额外掉落头颅；生物捕捉不保留原生物的装备、名称等数据。
 - 携带即可获得飞行及配置的持续药效，双击跳跃起飞；飞行速度提供 **0.5×、1×、2×、4×、6×** 五档。
+  G 界面的“飞行速度覆盖”默认开启，优先使用工具速度并加快松键减速；关闭后优先使用其他装备的飞行加速。
 - 玩家保护可阻止伤害并清除负面药效；高级隐身隐藏玩家及装备，并避免由自己触发自然刷怪或原版刷怪笼。
   特殊 Boss 和自定义 AI 的效果取决于兼容情况。
 - 开启传送后，使用 Ender IO **传送权杖**的操作与距离设置。建筑、收获等右键操作优先，未执行其他操作时才传送。
@@ -507,6 +508,7 @@ Check the preview for other special-block restrictions.
 - Area attacks extend up to **27x27**, three blocks above and below. Force kill and secondary area attacks exclude players and recognized allies.
 - Beheading adds skull drops for supported skeletons, wither skeletons, zombies and creepers. Captured mobs' spawn eggs do not preserve equipment or names.
 - Carry the wand for flight and configured potion effects; double-tap jump to fly, with **0.5x, 1x, 2x, 4x and 6x** speed settings.
+  **Flight speed override** in G settings is on by default, prioritizing the wand's speed and slowing you faster after releasing controls. Turn it off to prioritize flight boosts from other equipment.
 - Player protection blocks damage and clears harmful effects. Advanced stealth hides the player and equipment and stops that player from activating natural spawning or vanilla spawners.
   Special bosses and custom AI depend on compatibility.
 - Teleport uses Ender IO's **Staff of Teleportation** controls and range settings. Other right-click actions, such as building or harvesting, take priority; teleport occurs when no other action succeeds.

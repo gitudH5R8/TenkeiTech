@@ -107,6 +107,7 @@ public final class ItemUniversalWand extends Item
     private static final String NBT_TELEPORT = "teleportEnabled";
     private static final String NBT_PLAYER_PROTECTION = "playerProtection";
     private static final String NBT_NO_AGGRO = "noAggro";
+    private static final String NBT_FLIGHT_SPEED_OVERRIDE = "flightSpeedOverride";
     private static final String NBT_TIME_ACCELERATION = "timeAcceleration";
     private static final String NBT_ACCELERATION_RATE = "accelerationRate";
     private static final String NBT_ACCELERATION_MODE = "accelerationMode";
@@ -537,6 +538,7 @@ public final class ItemUniversalWand extends Item
             EnumChatFormatting.LIGHT_PURPLE);
         addStateTooltip(tooltip, "no_aggro", isNoAggroEnabled(stack), EnumChatFormatting.LIGHT_PURPLE);
         addStateTooltip(tooltip, "teleport", isTeleportEnabled(stack), EnumChatFormatting.LIGHT_PURPLE);
+        addStateTooltip(tooltip, "flight_speed_override", isFlightSpeedOverrideEnabled(stack), EnumChatFormatting.AQUA);
         addStateTooltip(tooltip, "time_acceleration", isTimeAccelerationEnabled(stack), EnumChatFormatting.AQUA);
         tooltip.add(EnumChatFormatting.DARK_GRAY + "---- Vanilla ----");
         addStateTooltip(tooltip, "shears", isShearsEnabled(stack), EnumChatFormatting.YELLOW);
@@ -726,6 +728,16 @@ public final class ItemUniversalWand extends Item
 
     public static boolean isNoAggroEnabled(ItemStack stack) {
         return UniversalWandFeature.NO_AGGRO.allowed() && readProtectionSettings(stack).getBoolean(NBT_NO_AGGRO);
+    }
+
+    public static boolean isFlightSpeedOverrideEnabled(ItemStack stack) {
+        if (!UniversalWandFeature.FLIGHT.allowed()) return false;
+        NBTTagCompound settings = readProtectionSettings(stack);
+        return !settings.hasKey(NBT_FLIGHT_SPEED_OVERRIDE) || settings.getBoolean(NBT_FLIGHT_SPEED_OVERRIDE);
+    }
+
+    public static boolean setFlightSpeedOverrideEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
+        return setBooleanSetting(player, expected, NBT_FLIGHT_SPEED_OVERRIDE, enabled);
     }
 
     private static NBTTagCompound readProtectionSettings(ItemStack stack) {

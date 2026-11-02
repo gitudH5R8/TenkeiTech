@@ -21,6 +21,7 @@ import com.tenkeitech.item.ItemUniversalWand;
 import com.tenkeitech.mixin.minecraft.UniversalWandFlightSpeedAccessor;
 
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -35,6 +36,7 @@ public final class UniversalWandUtilityHandler {
     private static final Map<java.util.UUID, Boolean> SPEED_REQUESTS = new java.util.concurrent.ConcurrentHashMap<>();
     private static volatile java.util.UUID clientSpeedPlayer;
     private static volatile float clientSpeed;
+    private static volatile boolean clientSpeedOverride;
     private static volatile long clientSpeedNoticeUntil;
     private static volatile long clientAccelerationNoticeUntil;
     private static volatile int clientAccelerationRate;
@@ -58,12 +60,15 @@ public final class UniversalWandUtilityHandler {
     private static String[] cachedEntries;
     private static Map<Integer, Integer> configuredEffects = new LinkedHashMap<>();
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || !(event.player instanceof EntityPlayerMP player)) return;
         State state = STATES.computeIfAbsent(player, ignored -> new State());
         boolean carried = isCarrying(player);
         boolean flight = carried && UniversalWandFeature.FLIGHT.allowed();
+        boolean override = flight && shouldOverrideFlightSpeed(player);
+        if (state.speedOverride && !override) releaseSpeed(player, state);
+        state.speedOverride = override;
         Boolean decrease = SPEED_REQUESTS.remove(player.getUniqueID());
         int speed = getSpeedSetting(player);
         if (flight && decrease != null) {
@@ -77,9 +82,11 @@ public final class UniversalWandUtilityHandler {
         state.desiredSpeed = SPEED_STEPS[speed] / 200F;
         float syncedSpeed = flight ? state.desiredSpeed : 0;
         if (flight && decrease != null || Float.compare(state.syncedSpeed, syncedSpeed) != 0
+            || state.syncedOverride != override
             || player.ticksExisted % 20 == 0) {
-            UniversalWandNetwork.syncFlightSpeed(player, syncedSpeed, flight && decrease != null);
+            UniversalWandNetwork.syncFlightSpeed(player, syncedSpeed, override, flight && decrease != null);
             state.syncedSpeed = syncedSpeed;
+            state.syncedOverride = override;
         }
         updateFlight(player, state, flight);
         updateEffects(player, carried ? effects() : java.util.Collections.emptyMap());
@@ -90,8 +97,9 @@ public final class UniversalWandUtilityHandler {
         SPEED_REQUESTS.put(player.getUniqueID(), decrease);
     }
 
-    public static void receiveClientSpeed(java.util.UUID player, float speed) {
+    public static void receiveClientSpeed(java.util.UUID player, float speed, boolean override) {
         clientSpeed = Float.isFinite(speed) && speed >= 0.025F && speed <= 0.3F ? speed : 0;
+        clientSpeedOverride = clientSpeed > 0 && override;
         clientSpeedPlayer = player;
         if (player == null || clientSpeed == 0) clientSpeedNoticeUntil = 0;
         if (player == null) clientAccelerationNoticeUntil = 0;
@@ -110,6 +118,30 @@ public final class UniversalWandUtilityHandler {
             && player.getUniqueID()
                 .equals(clientSpeedPlayer)
             && isCarrying(player) ? clientSpeed : 0;
+    }
+
+    /** Resolve the movement speed at its point of use, after client armor updates. */
+    public static float resolveClientFlightSpeed(net.minecraft.entity.player.EntityPlayer player, float current) {
+        float speed = getClientSpeed(player);
+        if (speed <= 0) return current;
+        if (clientSpeedOverride) return speed;
+        return Float.compare(current, 0.05F) == 0 ? speed : current;
+    }
+
+    public static boolean shouldOverrideFlightSpeed(net.minecraft.entity.player.EntityPlayer player) {
+        if (player.worldObj.isRemote) return clientSpeedOverride && getClientSpeed(player) > 0;
+        if (!UniversalWandFeature.FLIGHT.allowed() || player.isDead || player.getHealth() <= 0) return false;
+        for (int slot = 0; slot < player.inventory.getSizeInventory(); slot++) {
+            if (overridesFlightSpeed(player.inventory.getStackInSlot(slot))) return true;
+        }
+        return Loader.isModLoaded("backhand")
+            && (overridesFlightSpeed(UniversalWandBackhandIntegration.getOffhandItem(player))
+                || overridesFlightSpeed(UniversalWandBackhandIntegration.getMainhandItem(player)));
+    }
+
+    private static boolean overridesFlightSpeed(ItemStack stack) {
+        return stack != null && stack.getItem() instanceof ItemUniversalWand
+            && ItemUniversalWand.isFlightSpeedOverrideEnabled(stack);
     }
 
     public static boolean hasFlight(net.minecraft.entity.player.EntityPlayer player) {
@@ -166,10 +198,16 @@ public final class UniversalWandUtilityHandler {
     private static void updateSpeed(EntityPlayerMP player, State state, boolean enabled) {
         float current = player.capabilities.getFlySpeed();
         if (state.speedOwned && Float.compare(current, state.appliedSpeed) != 0) {
-            // Carrying the wand owns the global speed; retain an external update for later restoration.
             state.originalSpeed = current;
+            if (!state.speedOverride) {
+                state.speedOwned = false;
+                player.getEntityData()
+                    .removeTag(SPEED_OWNER);
+            }
         }
         if (enabled) {
+            // Low priority only supplies the vanilla fallback or updates its own existing lease.
+            if (!state.speedOverride && !state.speedOwned && Float.compare(current, 0.05F) != 0) return;
             float desired = state.desiredSpeed;
             if (!state.speedOwned && Float.compare(current, desired) != 0) {
                 state.originalSpeed = current;
@@ -185,14 +223,20 @@ public final class UniversalWandUtilityHandler {
                 ((UniversalWandFlightSpeedAccessor) player.capabilities).tenkeitech$setFlySpeed(desired);
                 syncAbilities(player);
             }
-        } else if (!enabled) {
-            if (state.speedOwned) {
-                ((UniversalWandFlightSpeedAccessor) player.capabilities).tenkeitech$setFlySpeed(state.originalSpeed);
-                state.speedOwned = false;
-                player.getEntityData()
-                    .removeTag(SPEED_OWNER);
-                syncAbilities(player);
-            }
+        } else {
+            releaseSpeed(player, state);
+        }
+    }
+
+    private static void releaseSpeed(EntityPlayerMP player, State state) {
+        if (!state.speedOwned) return;
+        boolean restore = Float.compare(player.capabilities.getFlySpeed(), state.appliedSpeed) == 0;
+        state.speedOwned = false;
+        player.getEntityData()
+            .removeTag(SPEED_OWNER);
+        if (restore) {
+            ((UniversalWandFlightSpeedAccessor) player.capabilities).tenkeitech$setFlySpeed(state.originalSpeed);
+            syncAbilities(player);
         }
     }
 
@@ -359,6 +403,8 @@ public final class UniversalWandUtilityHandler {
 
         boolean flightOwned;
         boolean speedOwned;
+        boolean speedOverride;
+        boolean syncedOverride;
         float originalSpeed;
         float appliedSpeed;
         float desiredSpeed;

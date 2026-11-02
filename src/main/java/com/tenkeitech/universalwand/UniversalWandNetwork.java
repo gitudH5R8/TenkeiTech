@@ -358,27 +358,30 @@ public final class UniversalWandNetwork {
         CHANNEL.sendToServer(new FlightSpeedMessage(decrease));
     }
 
-    public static void syncFlightSpeed(EntityPlayerMP player, float speed, boolean notify) {
-        CHANNEL.sendTo(new FlightSpeedSyncMessage(player.getUniqueID(), speed, notify), player);
+    public static void syncFlightSpeed(EntityPlayerMP player, float speed, boolean override, boolean notify) {
+        CHANNEL.sendTo(new FlightSpeedSyncMessage(player.getUniqueID(), speed, override, notify), player);
     }
 
     public static final class FlightSpeedSyncMessage implements IMessage {
 
         private java.util.UUID player;
         private float speed;
+        private boolean override;
         private boolean notify;
 
         public FlightSpeedSyncMessage() {}
 
-        FlightSpeedSyncMessage(java.util.UUID player, float speed, boolean notify) {
+        FlightSpeedSyncMessage(java.util.UUID player, float speed, boolean override, boolean notify) {
             this.player = player;
             this.speed = speed;
+            this.override = override;
             this.notify = notify;
         }
 
         public void fromBytes(ByteBuf buffer) {
             player = new java.util.UUID(buffer.readLong(), buffer.readLong());
             speed = buffer.readFloat();
+            override = buffer.readBoolean();
             notify = buffer.readBoolean();
         }
 
@@ -386,6 +389,7 @@ public final class UniversalWandNetwork {
             buffer.writeLong(player.getMostSignificantBits());
             buffer.writeLong(player.getLeastSignificantBits());
             buffer.writeFloat(speed);
+            buffer.writeBoolean(override);
             buffer.writeBoolean(notify);
         }
     }
@@ -393,7 +397,7 @@ public final class UniversalWandNetwork {
     public static final class FlightSpeedSyncHandler implements IMessageHandler<FlightSpeedSyncMessage, IMessage> {
 
         public IMessage onMessage(FlightSpeedSyncMessage message, MessageContext context) {
-            UniversalWandUtilityHandler.receiveClientSpeed(message.player, message.speed);
+            UniversalWandUtilityHandler.receiveClientSpeed(message.player, message.speed, message.override);
             if (message.notify) UniversalWandUtilityHandler.showClientSpeedNotice();
             return null;
         }
