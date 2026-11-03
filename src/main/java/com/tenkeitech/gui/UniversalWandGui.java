@@ -123,6 +123,9 @@ public final class UniversalWandGui {
         BooleanSyncValue flightOverride = new BooleanSyncValue(
             () -> ItemUniversalWand.isFlightSpeedOverrideEnabled(expected),
             value -> ItemUniversalWand.setFlightSpeedOverrideEnabled(player, expected, value)).allowC2S();
+        BooleanSyncValue warpSuppression = new BooleanSyncValue(
+            () -> ItemUniversalWand.isWarpSuppressionEnabled(expected),
+            value -> ItemUniversalWand.setWarpSuppressionEnabled(player, expected, value)).allowC2S();
         IntSyncValue aoeSize = new IntSyncValue(
             () -> (ItemUniversalWand.getAoeSize(expected) - 1) / 2,
             value -> ItemUniversalWand.setAoeSize(
@@ -162,6 +165,7 @@ public final class UniversalWandGui {
         syncManager.syncValue("wand_player_protection", 0, playerProtection);
         syncManager.syncValue("wand_no_aggro", 0, noAggro);
         syncManager.syncValue("wand_flight_speed_override", 0, flightOverride);
+        syncManager.syncValue("wand_warp_suppression", 0, warpSuppression);
         syncManager.syncValue("wand_time_acceleration", 0, acceleration);
         StringSyncValue accelerationRates = new StringSyncValue(
             () -> Arrays.stream(Config.universalWandAccelerationRates)
@@ -189,11 +193,12 @@ public final class UniversalWandGui {
             .child(stateButton("beheading", beheading).pos(6, 42))
             .child(stateButton("spawn_egg", spawnEgg).pos(119, 42))
             .child(numberRow("aoe_size", aoeSize, 0, 13, 62, true));
-        ParentWidget<?> auxiliary = section("Auxiliary", 8, 210, 234, 84)
+        ParentWidget<?> auxiliary = section("Auxiliary", 8, 210, 234, 104)
             .child(stateButton("player_protection", playerProtection).pos(6, 22))
             .child(stateButton("no_aggro", noAggro).pos(119, 22))
             .child(stateButton("teleport", teleport).pos(6, 42))
             .child(stateButton("flight_speed_override", flightOverride).pos(119, 42))
+            .child(stateButton("warp_suppression", warpSuppression).pos(6, 62))
             .child(
                 new ButtonWidget<>()
                     .background(
@@ -216,7 +221,7 @@ public final class UniversalWandGui {
                         return true;
                     })
                     .tooltipDynamic(tooltip -> featureTooltip(tooltip, "time_acceleration"))
-                    .pos(6, 62)
+                    .pos(6, 82)
                     .size(222, 16));
         ParentWidget<?> mining = section("Mining", 248, 30, 234, 204)
             .child(stateButton("enhanced_chain", enhanced).pos(6, 22))

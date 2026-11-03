@@ -205,6 +205,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
   G 界面的“飞行速度覆盖”默认开启，优先使用工具速度并加快松键减速；关闭后优先使用其他装备的飞行加速。
 - 玩家保护可阻止伤害并清除负面药效；高级隐身隐藏玩家及装备，并避免由自己触发自然刷怪或原版刷怪笼。
   特殊 Boss 和自定义 AI 的效果取决于兼容情况。
+- 开启“扭曲抑制”后，携带工具可阻止神秘时代 4（含 WarpTheory）的扭曲事件，并以专属聊天提示代替。
 - 开启传送后，使用 Ender IO **传送权杖**的操作与距离设置。建筑、收获等右键操作优先，未执行其他操作时才传送。
 
 ##### 时间加速
@@ -511,6 +512,7 @@ Check the preview for other special-block restrictions.
   **Flight speed override** in G settings is on by default, prioritizing the wand's speed and slowing you faster after releasing controls. Turn it off to prioritize flight boosts from other equipment.
 - Player protection blocks damage and clears harmful effects. Advanced stealth hides the player and equipment and stops that player from activating natural spawning or vanilla spawners.
   Special bosses and custom AI depend on compatibility.
+- Enable **Warp suppression** to block Thaumcraft 4 warp events (including WarpTheory) while carrying the wand, with a custom chat message instead.
 - Teleport uses Ender IO's **Staff of Teleportation** controls and range settings. Other right-click actions, such as building or harvesting, take priority; teleport occurs when no other action succeeds.
 
 ##### Time Acceleration

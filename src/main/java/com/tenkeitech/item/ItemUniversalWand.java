@@ -107,6 +107,7 @@ public final class ItemUniversalWand extends Item
     private static final String NBT_TELEPORT = "teleportEnabled";
     private static final String NBT_PLAYER_PROTECTION = "playerProtection";
     private static final String NBT_NO_AGGRO = "noAggro";
+    private static final String NBT_WARP_SUPPRESSION = "warpSuppression";
     private static final String NBT_FLIGHT_SPEED_OVERRIDE = "flightSpeedOverride";
     private static final String NBT_TIME_ACCELERATION = "timeAcceleration";
     private static final String NBT_ACCELERATION_RATE = "accelerationRate";
@@ -539,6 +540,7 @@ public final class ItemUniversalWand extends Item
         addStateTooltip(tooltip, "no_aggro", isNoAggroEnabled(stack), EnumChatFormatting.LIGHT_PURPLE);
         addStateTooltip(tooltip, "teleport", isTeleportEnabled(stack), EnumChatFormatting.LIGHT_PURPLE);
         addStateTooltip(tooltip, "flight_speed_override", isFlightSpeedOverrideEnabled(stack), EnumChatFormatting.AQUA);
+        addStateTooltip(tooltip, "warp_suppression", isWarpSuppressionEnabled(stack), EnumChatFormatting.LIGHT_PURPLE);
         addStateTooltip(tooltip, "time_acceleration", isTimeAccelerationEnabled(stack), EnumChatFormatting.AQUA);
         tooltip.add(EnumChatFormatting.DARK_GRAY + "---- Vanilla ----");
         addStateTooltip(tooltip, "shears", isShearsEnabled(stack), EnumChatFormatting.YELLOW);
@@ -738,6 +740,15 @@ public final class ItemUniversalWand extends Item
 
     public static boolean setFlightSpeedOverrideEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
         return setBooleanSetting(player, expected, NBT_FLIGHT_SPEED_OVERRIDE, enabled);
+    }
+
+    public static boolean isWarpSuppressionEnabled(ItemStack stack) {
+        return UniversalWandFeature.WARP_SUPPRESSION.allowed()
+            && readProtectionSettings(stack).getBoolean(NBT_WARP_SUPPRESSION);
+    }
+
+    public static boolean setWarpSuppressionEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
+        return setBooleanSetting(player, expected, NBT_WARP_SUPPRESSION, enabled);
     }
 
     private static NBTTagCompound readProtectionSettings(ItemStack stack) {

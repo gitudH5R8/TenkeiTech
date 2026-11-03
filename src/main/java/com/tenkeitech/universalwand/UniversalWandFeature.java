@@ -26,7 +26,8 @@ public enum UniversalWandFeature {
     GT_TOOLS("mining", "gtToolMode", "gt_mode", "gt_wrench", "gt_cutter", "gt_off"),
     SHEARS("vanilla", "shearsEnabled", "shears"),
     HOE("vanilla", "hoeEnabled", "hoe"),
-    FLIGHT("auxiliary", "flightSpeedOverride", "flight", "flight_speed_override");
+    FLIGHT("auxiliary", "flightSpeedOverride", "flight", "flight_speed_override"),
+    WARP_SUPPRESSION("auxiliary", "warpSuppression", "warp_suppression");
 
     private static final long ALL_MASK = (1L << values().length) - 1;
 
