@@ -62,6 +62,6 @@ dependencies {
     // Optional quest skipping integration, matching GTNH 2.9.0.
     devOnlyNonPublishable("com.github.GTNewHorizons:BetterQuesting:3.8.92-GTNH:dev")
 
-    // Optional warp suppression integration, matching GTNH 2.9.0.
-    devOnlyNonPublishable("com.github.GTNewHorizons:WarpTheory:1.5.8-GTNH:dev") { transitive = false }
+    // Compile optional Mixin targets and mappings without loading WarpTheory or its prerequisites in dev runs.
+    compileOnly("com.github.GTNewHorizons:WarpTheory:1.5.8-GTNH:dev") { transitive = false }
 }
