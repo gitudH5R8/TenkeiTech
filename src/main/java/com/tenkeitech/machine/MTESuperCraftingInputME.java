@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-3.0-only
  * Adapted from GT5-Unofficial's MTEHatchCraftingInputME 5.09.54.105.
  * Interface suffix components updated for GT5-Unofficial 5.09.54.133.
+ * Tunnel input expansion follows GT5-Unofficial 5.09.54.265.
  */
 package com.tenkeitech.machine;
 
@@ -95,6 +96,7 @@ import appeng.api.implementations.IPowerChannelState;
 import appeng.api.interfaces.IInterfaceNameProvider;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.ICraftingGrid;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
@@ -114,15 +116,19 @@ import appeng.api.util.IInterfaceViewable;
 import appeng.core.AppEng;
 import appeng.core.sync.GuiBridge;
 import appeng.helpers.ICustomNameObject;
+import appeng.helpers.PatternHelper;
 import appeng.items.misc.ItemEncodedPattern;
+import appeng.items.misc.ItemTunnelPattern;
 import appeng.items.tools.quartz.ToolQuartzCuttingKnife;
 import appeng.me.GridAccessException;
+import appeng.me.cache.CraftingGridCache;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.util.IWideReadableNumberConverter;
 import appeng.util.Platform;
 import appeng.util.ReadableNumberConverter;
 import appeng.util.ScheduledReason;
+import appeng.util.TunnelPatternExpander;
 import appeng.util.inv.MEInventoryCrafting;
 import cpw.mods.fml.common.Loader;
 import gregtech.GTLoggers;
@@ -394,7 +400,7 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
                 if (expandedPattern || effectiveDetails == null
                     || effectiveDetails.isCraftable()
                     || !(parentMTE instanceof MTESuperCraftingInputME machine)) return false;
-                IAEStack<?>[] inputs = effectiveDetails.getCondensedAEInputs();
+                IAEStack<?>[] inputs = getProcessingInputs(effectiveDetails);
                 if (inputs == null || inputs.length == 0) return false;
                 boolean sawInput = false;
                 for (IAEStack<?> input : inputs) {
@@ -685,11 +691,35 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
             return rawPatternDetails;
         }
 
+        @Nullable
+        private IAEStack<?>[] getProcessingInputs(ICraftingPatternDetails details) {
+            IAEStack<?>[] inputs = details.getCondensedAEInputs();
+            if (details.isCraftable() || Arrays.stream(inputs)
+                .noneMatch(
+                    input -> input instanceof IAEItemStack item
+                        && ItemTunnelPattern.isTunnelPattern(item.getItemStack())))
+                return inputs;
+            if (!(parentMTE instanceof MTESuperCraftingInputME machine)) return null;
+            try {
+                CraftingGridCache cache = machine.getProxy()
+                    .getGrid()
+                    .getCache(ICraftingGrid.class);
+                // Use the same network-owned tunnel expansion as the AE CPU's dispatched input table.
+                List<IAEStack<?>> expanded = TunnelPatternExpander.expandInputs(inputs, cache, null);
+                return expanded == null ? null
+                    : PatternHelper.convertToCondensedAEList(expanded.toArray(new IAEStack<?>[0]));
+            } catch (GridAccessException ignored) {
+                return null;
+            }
+        }
+
         @Override
         public GTDualInputPattern getPatternInputs() {
             GTDualInputPattern dualInputs = new GTDualInputPattern();
             ICraftingPatternDetails processingDetails = getPatternDetails();
-            if (expandedPattern && !isEmpty() && processingDetails == null) {
+            IAEStack<?>[] processingInputs = processingDetails == null ? null : getProcessingInputs(processingDetails);
+            if ((expandedPattern && !isEmpty() && processingDetails == null)
+                || (processingDetails != null && processingInputs == null)) {
                 dualInputs.inputItems = GTValues.emptyItemStackArray;
                 dualInputs.inputFluid = GTValues.emptyFluidStackArray;
                 return dualInputs;
@@ -702,8 +732,8 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
                 ? machine.getSharedConsumableFluids()
                 : GTValues.emptyFluidStackArray;
 
-            if (processingDetails != null) {
-                for (IAEStack<?> singleInput : processingDetails.getAEInputs()) {
+            if (processingInputs != null) {
+                for (IAEStack<?> singleInput : processingInputs) {
                     if (singleInput instanceof IAEItemStack ais) {
                         inputItems = ArrayUtils.addAll(inputItems, ais.getItemStack());
                     } else if (singleInput instanceof IAEFluidStack ifs) {
