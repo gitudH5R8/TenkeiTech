@@ -43,23 +43,23 @@ public final class UniversalWandBlockOverlayRenderer {
         TileEntity tile = event.player.worldObj
             .getTileEntity(event.target.blockX, event.target.blockY, event.target.blockZ);
         if (!(tile instanceof IGregTechTileEntity)) {
-            int[] cable = ItemUniversalWand.findGtCableOnViewRay(event.player, event.player.worldObj);
-            if (cable == null) return;
-            tile = event.player.worldObj.getTileEntity(cable[0], cable[1], cable[2]);
+            int[] target = ItemUniversalWand.findGtToolTargetOnViewRay(event.player, event.player.worldObj, mode);
+            if (target == null) return;
+            tile = event.player.worldObj.getTileEntity(target[0], target[1], target[2]);
             if (!(tile instanceof IGregTechTileEntity)) return;
-            MovingObjectPosition cableTarget = new MovingObjectPosition(
-                cable[0],
-                cable[1],
-                cable[2],
-                cable[3],
+            MovingObjectPosition pipeTarget = new MovingObjectPosition(
+                target[0],
+                target[1],
+                target[2],
+                target[3],
                 Vec3.createVectorHelper(
-                    cable[0] + cable[4] / 1000.0D,
-                    cable[1] + cable[5] / 1000.0D,
-                    cable[2] + cable[6] / 1000.0D));
+                    target[0] + target[4] / 1000.0D,
+                    target[1] + target[5] / 1000.0D,
+                    target[2] + target[6] / 1000.0D));
             event = new DrawBlockHighlightEvent(
                 event.context,
                 event.player,
-                cableTarget,
+                pipeTarget,
                 event.subID,
                 event.currentItem,
                 event.partialTicks);

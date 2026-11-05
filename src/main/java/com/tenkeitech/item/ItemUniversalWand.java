@@ -26,6 +26,8 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.BlockEvent;
 
 import com.cleanroommc.modularui.api.IGuiHolder;
@@ -61,11 +63,13 @@ import appeng.util.Platform;
 import buildcraft.api.tools.IToolWrench;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Optional;
+import cpw.mods.fml.common.eventhandler.Event;
 import crazypants.enderio.api.tool.ITool;
-import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.objects.GTItemStack;
+import gregtech.api.metatileentity.implementations.MTECable;
+import gregtech.api.metatileentity.implementations.MTEFluidPipe;
+import gregtech.api.metatileentity.implementations.MTEItemPipe;
 import gregtech.api.util.GTUtility;
 
 /** Phase-one universal wand core. Later capabilities are added behind this state boundary. */
@@ -221,17 +225,33 @@ public final class ItemUniversalWand extends Item
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
+        boolean modifier = world.isRemote ? TenkeiTech.proxy.isWandUndoKeyHeld()
+            : BuildingUndoHistory.isKeyHeld(player);
+        if (world.isRemote && (isTimeAccelerationEnabled(stack) || isBuildingEnabled(stack))) {
+            // Synchronize this click's modifier before the native block-use packet, including a quick key release.
+            UniversalWandNetwork.requestUndoKey(modifier);
+        }
+        if (modifier && player.isSneaking() && isTimeAccelerationEnabled(stack)) {
+            if (world.isRemote) return false;
+            if (player instanceof EntityPlayerMP mp)
+                com.tenkeitech.universalwand.UniversalWandAccelerationHandler.cancel(mp, x, y, z);
+            return true;
+        }
+        boolean wrenchFirst = player.isSneaking() && !modifier && getGtToolMode(stack) == GtToolMode.WRENCH;
+        if (wrenchFirst) {
+            // Preserve the native use packet; only the server may decide whether the wrench handled this click.
+            if (world.isRemote) return false;
+            if (useGtTool(stack, player, world, x, y, z, side, hitX, hitY, hitZ, GtToolMode.WRENCH)) return true;
+        }
         if (player.isSneaking() && isTimeAccelerationEnabled(stack)) {
             if (world.isRemote) return false;
             if (player instanceof EntityPlayerMP mp)
                 com.tenkeitech.universalwand.UniversalWandAccelerationHandler.use(mp, x, y, z);
             return true;
         }
-        boolean undo = isBuildingEnabled(stack)
-            && (world.isRemote ? TenkeiTech.proxy.isWandUndoKeyHeld() : BuildingUndoHistory.isActive(player));
+        boolean undo = isBuildingEnabled(stack) && modifier;
         if (undo) {
             if (world.isRemote) {
-                UniversalWandNetwork.requestUndoKey(true);
                 UniversalWandNetwork
                     .requestBuildStart(x, y, z, side, hitX, hitY, hitZ, getBuildingCore(stack).ordinal(), true);
             } else if (player instanceof EntityPlayerMP mp) UniversalWandBuildingHandler
@@ -252,22 +272,42 @@ public final class ItemUniversalWand extends Item
             return true;
         }
         GtToolMode mode = getGtToolMode(stack);
-        if (mode == GtToolMode.OFF) {
+        if (mode == GtToolMode.OFF || wrenchFirst) {
             return false;
         }
         if (world.isRemote) return false;
+        return useGtTool(stack, player, world, x, y, z, side, hitX, hitY, hitZ, mode);
+    }
+
+    private static boolean useGtTool(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ, GtToolMode mode) {
         ForgeDirection clickedSide = ForgeDirection.getOrientation(side);
-        if (mode == GtToolMode.WIRE_CUTTER) {
-            int[] cable = findGtCableOnViewRay(player, world);
-            if (cable != null && !(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity)) {
-                x = cable[0];
-                y = cable[1];
-                z = cable[2];
-                clickedSide = ForgeDirection.getOrientation(cable[3]);
-                hitX = cable[4] / 1000F;
-                hitY = cable[5] / 1000F;
-                hitZ = cable[6] / 1000F;
+        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity)) {
+            int[] target = findGtToolTargetOnViewRay(player, world, mode);
+            if (target != null) {
+                x = target[0];
+                y = target[1];
+                z = target[2];
+                clickedSide = ForgeDirection.getOrientation(target[3]);
+                hitX = target[4] / 1000F;
+                hitY = target[5] / 1000F;
+                hitZ = target[6] / 1000F;
+                if (!world.canMineBlock(player, x, y, z) || !player.canPlayerEdit(x, y, z, clickedSide.ordinal(), stack)
+                    || !(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gtTile)
+                    || !gtTile.isUseableByPlayer(player)) return true;
+                PlayerInteractEvent interaction = ForgeEventFactory.onPlayerInteract(
+                    player,
+                    PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK,
+                    x,
+                    y,
+                    z,
+                    clickedSide.ordinal(),
+                    world);
+                if (interaction.isCanceled() || interaction.useBlock == Event.Result.DENY
+                    || interaction.useItem == Event.Result.DENY) return true;
             }
+        }
+        if (mode == GtToolMode.WIRE_CUTTER) {
             return com.tenkeitech.universalwand.UniversalWandRightClick.handled(
                 player,
                 GtToolBackend.handleWireCutter(stack, player, world, x, y, z, clickedSide, hitX, hitY, hitZ));
@@ -294,23 +334,39 @@ public final class ItemUniversalWand extends Item
             .handled(player, VanillaToolBackend.shearEntity(player.getHeldItem(), player, target));
     }
 
-    /** Finds a GT cable when its thin collision boxes leave a gap in the vanilla ray hit. */
-    public static int[] findGtCableOnViewRay(EntityPlayer player, World world) {
+    /** Finds a mode-compatible GT pipe when its thin collision box leaves a gap in the vanilla ray hit. */
+    public static int[] findGtToolTargetOnViewRay(EntityPlayer player, World world, GtToolMode mode) {
+        if (mode == GtToolMode.OFF) return null;
         net.minecraft.util.Vec3 eye = net.minecraft.util.Vec3
             .createVectorHelper(player.posX, player.posY + player.getEyeHeight(), player.posZ);
         net.minecraft.util.Vec3 look = player.getLookVec();
         if (look == null) return null;
-        for (double distance = 0.05D; distance <= 5.0D; distance += 0.05D) {
+        double range = 5D;
+        net.minecraft.util.Vec3 end = eye.addVector(look.xCoord * range, look.yCoord * range, look.zCoord * range);
+        int minChunkX = (int) Math.floor(Math.min(eye.xCoord, end.xCoord)) >> 4;
+        int maxChunkX = (int) Math.floor(Math.max(eye.xCoord, end.xCoord)) >> 4;
+        int minChunkZ = (int) Math.floor(Math.min(eye.zCoord, end.zCoord)) >> 4;
+        int maxChunkZ = (int) Math.floor(Math.max(eye.zCoord, end.zCoord)) >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                if (!world.getChunkProvider()
+                    .chunkExists(chunkX, chunkZ)) return null;
+            }
+        }
+        net.minecraft.util.MovingObjectPosition obstruction = world.rayTraceBlocks(eye, end);
+        if (obstruction != null && obstruction.hitVec != null)
+            range = Math.min(range, eye.distanceTo(obstruction.hitVec));
+        for (double distance = 0.05D; distance <= range; distance += 0.05D) {
             int x = (int) Math.floor(eye.xCoord + look.xCoord * distance);
             int y = (int) Math.floor(eye.yCoord + look.yCoord * distance);
             int z = (int) Math.floor(eye.zCoord + look.zCoord * distance);
+            if (!world.blockExists(x, y, z)) return null;
             net.minecraft.tileentity.TileEntity tile = world.getTileEntity(x, y, z);
             if (!(tile instanceof IGregTechTileEntity gt)) continue;
             IMetaTileEntity meta = gt.getMetaTileEntity();
-            if (meta == null || !meta.getClass()
-                .getName()
-                .toLowerCase()
-                .contains("cable")) continue;
+            boolean matches = mode == GtToolMode.WIRE_CUTTER ? meta instanceof MTECable
+                : meta instanceof MTEFluidPipe || meta instanceof MTEItemPipe;
+            if (!matches) continue;
             ForgeDirection face = Math.abs(look.xCoord) >= Math.abs(look.yCoord)
                 && Math.abs(look.xCoord) >= Math.abs(look.zCoord)
                     ? (look.xCoord > 0 ? ForgeDirection.WEST : ForgeDirection.EAST)
@@ -443,15 +499,6 @@ public final class ItemUniversalWand extends Item
             player.inventory.markDirty();
         if (!world.isRemote && held && entity instanceof EntityPlayerMP player)
             UniversalWandStorage.validateHeldBinding(player, stack);
-        if (world.isRemote && held) {
-            GtToolMode mode = getGtToolMode(stack);
-            if ((mode == GtToolMode.WRENCH && GregTechAPI.sWrenchList != null
-                && !GTUtility.isStackInList(stack, GregTechAPI.sWrenchList))
-                || (mode == GtToolMode.WIRE_CUTTER && GregTechAPI.sWireCutterList != null
-                    && !GTUtility.isStackInList(stack, GregTechAPI.sWireCutterList))) {
-                updateGtRightClickRegistration(stack, mode);
-            }
-        }
         if (!world.isRemote && (!hasEnchantment(stack, Enchantment.looting.effectId) || !hasEnchantment(
             stack,
             getEnchantMode(stack) == EnchantMode.FORTUNE ? Enchantment.fortune.effectId
@@ -1080,24 +1127,10 @@ public final class ItemUniversalWand extends Item
         settings.setInteger(NBT_TOOL_MODE, mode.ordinal());
         root.setTag(NBT_SETTINGS, settings);
         expectedStack.setTagCompound(root);
-        updateGtRightClickRegistration(expectedStack, mode);
         player.inventory.markDirty();
         if (player instanceof EntityPlayerMP)
             ((EntityPlayerMP) player).sendContainerToPlayer(player.inventoryContainer);
         return true;
-    }
-
-    private static void updateGtRightClickRegistration(ItemStack stack, GtToolMode mode) {
-        removeGtRegistrations(GregTechAPI.sWrenchList, stack.getItem());
-        removeGtRegistrations(GregTechAPI.sWireCutterList, stack.getItem());
-        ItemStack registration = stack.copy();
-        if (mode == GtToolMode.WRENCH) GregTechAPI.registerWrench(registration);
-        if (mode == GtToolMode.WIRE_CUTTER) GregTechAPI.registerWireCutter(registration);
-    }
-
-    private static void removeGtRegistrations(java.util.Collection<GTItemStack> list, Item item) {
-        if (list == null) return;
-        list.removeIf(entry -> entry != null && entry.mItem == item);
     }
 
     public static boolean setProtectionMode(EntityPlayer player, ItemStack expectedStack, boolean enabled) {
@@ -1264,7 +1297,6 @@ public final class ItemUniversalWand extends Item
         if (root == null) root = new NBTTagCompound();
         root.setTag(NBT_SETTINGS, restricted);
         stack.setTagCompound(root);
-        if (!UniversalWandFeature.GT_TOOLS.allowed()) updateGtRightClickRegistration(stack, GtToolMode.OFF);
         return true;
     }
 }

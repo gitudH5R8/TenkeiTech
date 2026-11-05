@@ -73,15 +73,26 @@ public final class BuildingUndoHistory {
     }
 
     public static boolean isActive(EntityPlayer player) {
+        return isKeyHeld(player) && ItemUniversalWand.isHeldBy(player)
+            && ItemUniversalWand.isBuildingEnabled(player.getHeldItem())
+            && !(player.isSneaking() && ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem()));
+    }
+
+    /** Shared modifier input; sneaking with acceleration enabled reserves it for target cancellation. */
+    public static boolean isKeyHeld(EntityPlayer player) {
         if (!(player instanceof EntityPlayerMP mp)) return false;
         KeyRequest requested = KEY_REQUESTS.remove(player.getUniqueID());
         if (requested != null) {
             if (requested.player == player && requested.held
                 && ItemUniversalWand.isHeldBy(player)
-                && ItemUniversalWand.isBuildingEnabled(player.getHeldItem()))
+                && (ItemUniversalWand.isBuildingEnabled(player.getHeldItem())
+                    || ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem())))
                 HELD.put(player.getUniqueID(), System.nanoTime());
             else HELD.remove(player.getUniqueID());
-            if (requested.held) updateClient(mp);
+            if (requested.held && ItemUniversalWand.isHeldBy(player)
+                && ItemUniversalWand.isBuildingEnabled(player.getHeldItem())
+                && !(player.isSneaking() && ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem())))
+                updateClient(mp);
         }
         Long last = HELD.get(player.getUniqueID());
         return last != null && System.nanoTime() - last < KEY_TIMEOUT_NANOS;
@@ -92,7 +103,7 @@ public final class BuildingUndoHistory {
             .removeIf(entry -> System.nanoTime() - entry.getValue() >= KEY_TIMEOUT_NANOS);
         for (KeyRequest request : new ArrayList<>(KEY_REQUESTS.values())) {
             if (request.player.worldObj != null && request.player.worldObj.playerEntities.contains(request.player))
-                isActive(request.player);
+                isKeyHeld(request.player);
             else KEY_REQUESTS.remove(request.player.getUniqueID(), request);
         }
         for (LinkedList<Entry> entries : HISTORY.values()) trim(entries);

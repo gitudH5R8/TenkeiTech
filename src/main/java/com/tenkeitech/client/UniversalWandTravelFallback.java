@@ -32,7 +32,7 @@ public final class UniversalWandTravelFallback {
         approved = id;
     }
 
-    /** Capture entity use and offhand fallback before their packets, including Backhand's reversed hand order. */
+    /** Capture wrench, entity and offhand use before their packets, including Backhand's reversed hand order. */
     public static void beginClick() {
         Minecraft minecraft = Minecraft.getMinecraft();
         EntityPlayer player = minecraft.thePlayer;
@@ -43,7 +43,10 @@ public final class UniversalWandTravelFallback {
             || !ItemUniversalWand.isTeleportEnabled(stack)) return;
         boolean offhand = Loader.isModLoaded("backhand")
             && UniversalWandBackhandIntegration.getOffhandItem(player) != null;
-        if (offhand || hit.entityHit != null && ItemUniversalWand.isShearsEnabled(stack)) request(player, stack);
+        boolean wrench = hit.typeOfHit == net.minecraft.util.MovingObjectPosition.MovingObjectType.BLOCK
+            && ItemUniversalWand.getGtToolMode(stack) == ItemUniversalWand.GtToolMode.WRENCH;
+        if (offhand || wrench || hit.entityHit != null && ItemUniversalWand.isShearsEnabled(stack))
+            request(player, stack);
     }
 
     public static void finishClick() {

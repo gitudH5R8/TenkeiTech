@@ -134,6 +134,14 @@ public final class UniversalWandAccelerationHandler {
     private static final ThreadLocal<TileEntity> COMPLETING_RECIPE = new ThreadLocal<>();
 
     public static void use(EntityPlayerMP player, int x, int y, int z) {
+        use(player, x, y, z, false);
+    }
+
+    public static void cancel(EntityPlayerMP player, int x, int y, int z) {
+        use(player, x, y, z, true);
+    }
+
+    private static void use(EntityPlayerMP player, int x, int y, int z, boolean cancel) {
         if (player == null || player.worldObj == null
             || !ItemUniversalWand.isHeldBy(player)
             || !ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem())) return;
@@ -152,7 +160,7 @@ public final class UniversalWandAccelerationHandler {
         if (task != null && !task.owner.equals(player.getUniqueID())) {
             return;
         }
-        int rate = ItemUniversalWand.getAccelerationRate(player.getHeldItem());
+        int rate = cancel ? 0 : ItemUniversalWand.getAccelerationRate(player.getHeldItem());
         if (rate == 0) {
             if (task != null) {
                 remove(key, task);

@@ -216,6 +216,8 @@ public final class UniversalWandBuildingPreview {
         return minecraft.thePlayer != null && minecraft.theWorld != null
             && ItemUniversalWand.isHeldBy(minecraft.thePlayer)
             && ItemUniversalWand.isBuildingEnabled(minecraft.thePlayer.getHeldItem())
+            && !(minecraft.thePlayer.isSneaking()
+                && ItemUniversalWand.isTimeAccelerationEnabled(minecraft.thePlayer.getHeldItem()))
             && UniversalWandKeyHandler.isUndoKeyHeld();
     }
 

@@ -98,7 +98,7 @@ public final class UniversalWandKeyHandler {
         }
         ItemStack stack = minecraft.thePlayer.getHeldItem();
         boolean undo = isUndoKeyHeld() && ItemUniversalWand.isHeldBy(minecraft.thePlayer)
-            && ItemUniversalWand.isBuildingEnabled(stack);
+            && (ItemUniversalWand.isBuildingEnabled(stack) || ItemUniversalWand.isTimeAccelerationEnabled(stack));
         if (undo != lastUndoHeld || undo && ++undoHeartbeat >= 10) {
             UniversalWandNetwork.requestUndoKey(undo);
             lastUndoHeld = undo;
