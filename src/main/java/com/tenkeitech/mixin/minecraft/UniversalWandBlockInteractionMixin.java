@@ -12,13 +12,12 @@ import net.minecraft.world.World;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.tenkeitech.universalwand.UniversalWandRightClick;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 /** Include the native block's handled result in a pending wand click without changing activation order. */
 @Mixin(ItemInWorldManager.class)
@@ -27,12 +26,16 @@ public abstract class UniversalWandBlockInteractionMixin {
     @WrapMethod(method = "activateBlockOrUseItem")
     private boolean tenkeitech$recordInteractionChanges(EntityPlayer player, World world, ItemStack stack, int x, int y,
         int z, int side, float hitX, float hitY, float hitZ, Operation<Boolean> original) {
+        UniversalWandRightClick.observe(player);
         if (!UniversalWandRightClick.isPending(player) || !world.blockExists(x, y, z))
             return original.call(player, world, stack, x, y, z, side, hitX, hitY, hitZ);
         Block before = world.getBlock(x, y, z);
         int metadata = world.getBlockMetadata(x, y, z);
         try {
             return original.call(player, world, stack, x, y, z, side, hitX, hitY, hitZ);
+        } catch (RuntimeException failure) {
+            UniversalWandRightClick.record(player, WandActionResult.BLOCKED);
+            throw failure;
         } finally {
             // Forge event handlers can change the target even if a later handler makes the item return false.
             if (world.blockExists(x, y, z)) UniversalWandRightClick
@@ -63,9 +66,15 @@ public abstract class UniversalWandBlockInteractionMixin {
             .handled(player, original.call(stack, player, world, x, y, z, side, hitX, hitY, hitZ));
     }
 
-    @Inject(method = "tryUseItem", at = @At("RETURN"))
-    private void tenkeitech$recordItemUse(EntityPlayer player, World world, ItemStack stack,
-        CallbackInfoReturnable<Boolean> cir) {
-        UniversalWandRightClick.handled(player, cir.getReturnValue());
+    @WrapMethod(method = "tryUseItem")
+    private boolean tenkeitech$recordItemUse(EntityPlayer player, World world, ItemStack stack,
+        Operation<Boolean> original) {
+        UniversalWandRightClick.observe(player);
+        try {
+            return UniversalWandRightClick.handled(player, original.call(player, world, stack));
+        } catch (RuntimeException failure) {
+            UniversalWandRightClick.record(player, WandActionResult.BLOCKED);
+            throw failure;
+        }
     }
 }

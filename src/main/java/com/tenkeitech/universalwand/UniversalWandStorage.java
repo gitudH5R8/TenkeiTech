@@ -18,6 +18,7 @@ import com.tenkeitech.TenkeiTech;
 import com.tenkeitech.inventory.ItemInputKey;
 import com.tenkeitech.item.ItemUniversalWand;
 import com.tenkeitech.item.ItemUniversalWand.BuildingCore;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 import appeng.api.AEApi;
 import appeng.api.config.Actionable;
@@ -92,29 +93,29 @@ public final class UniversalWandStorage {
         }
     }
 
-    public static void toggleBinding(EntityPlayerMP player, int x, int y, int z) {
+    public static WandActionResult toggleBinding(EntityPlayerMP player, int x, int y, int z) {
         ItemStack wand = player.getHeldItem();
         if (player.isDead || !ItemUniversalWand.isHeldBy(player)
             || !player.worldObj.blockExists(x, y, z)
             || !UniversalWandActions.isTarget(player, x, y, z)) {
             player.addChatMessage(new ChatComponentTranslation("tenkeitech.universal_wand.ae_invalid"));
-            return;
+            return WandActionResult.BLOCKED;
         }
         TileEntity tile = player.worldObj.getTileEntity(x, y, z);
         if (!(tile instanceof IWirelessAccessPoint point) || tile.isInvalid()) {
             player.addChatMessage(new ChatComponentTranslation("tenkeitech.universal_wand.ae_invalid"));
-            return;
+            return WandActionResult.BLOCKED;
         }
         NBTTagCompound existing = ItemUniversalWand.getAeBinding(wand);
         if (sameLocation(existing, player.dimension, x, y, z) && matchesBinding(tile, existing)) {
-            if (UniversalWandRightClick.handled(player, ItemUniversalWand.setAeBinding(player, wand, null)))
-                player.addChatMessage(new ChatComponentTranslation("tenkeitech.universal_wand.ae_unbound"));
-            return;
+            boolean changed = ItemUniversalWand.setAeBinding(player, wand, null);
+            if (changed) player.addChatMessage(new ChatComponentTranslation("tenkeitech.universal_wand.ae_unbound"));
+            return changed ? WandActionResult.HANDLED : WandActionResult.NO_EFFECT;
         }
         if (!point.isActive() || !(canInsert(player, point.getGrid())
             || canAccess(player, point.getGrid(), SecurityPermissions.EXTRACT))) {
             player.addChatMessage(new ChatComponentTranslation("tenkeitech.universal_wand.ae_invalid"));
-            return;
+            return WandActionResult.BLOCKED;
         }
         NBTTagCompound binding = new NBTTagCompound();
         binding.setInteger("dimension", player.dimension);
@@ -122,9 +123,10 @@ public final class UniversalWandStorage {
         binding.setInteger("y", y);
         binding.setInteger("z", z);
         if (tile instanceof ILocatable locatable) binding.setLong("serial", locatable.getLocatableSerial());
-        if (UniversalWandRightClick.handled(player, ItemUniversalWand.setAeBinding(player, wand, binding)))
-            player.addChatMessage(
-                new ChatComponentTranslation("tenkeitech.universal_wand.ae_bound", player.dimension, x, y, z));
+        boolean changed = ItemUniversalWand.setAeBinding(player, wand, binding);
+        if (changed) player.addChatMessage(
+            new ChatComponentTranslation("tenkeitech.universal_wand.ae_bound", player.dimension, x, y, z));
+        return changed ? WandActionResult.HANDLED : WandActionResult.NO_EFFECT;
     }
 
     private static boolean sameLocation(NBTTagCompound binding, int dimension, int x, int y, int z) {

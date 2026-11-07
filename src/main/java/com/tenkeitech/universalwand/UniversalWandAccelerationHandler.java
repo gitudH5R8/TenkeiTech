@@ -29,6 +29,7 @@ import com.tenkeitech.TenkeiTech;
 import com.tenkeitech.integration.gt5u.WandAssemblyAcceleration;
 import com.tenkeitech.integration.gt5u.WandResearchAcceleration;
 import com.tenkeitech.item.ItemUniversalWand;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -133,45 +134,46 @@ public final class UniversalWandAccelerationHandler {
     private static final ThreadLocal<TileEntity> UPDATING = new ThreadLocal<>();
     private static final ThreadLocal<TileEntity> COMPLETING_RECIPE = new ThreadLocal<>();
 
-    public static void use(EntityPlayerMP player, int x, int y, int z) {
-        use(player, x, y, z, false);
+    public static WandActionResult use(EntityPlayerMP player, int x, int y, int z) {
+        return use(player, x, y, z, false);
     }
 
-    public static void cancel(EntityPlayerMP player, int x, int y, int z) {
-        use(player, x, y, z, true);
+    public static WandActionResult cancel(EntityPlayerMP player, int x, int y, int z) {
+        return use(player, x, y, z, true);
     }
 
-    private static void use(EntityPlayerMP player, int x, int y, int z, boolean cancel) {
+    private static WandActionResult use(EntityPlayerMP player, int x, int y, int z, boolean cancel) {
         if (player == null || player.worldObj == null
             || !ItemUniversalWand.isHeldBy(player)
-            || !ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem())) return;
+            || !ItemUniversalWand.isTimeAccelerationEnabled(player.getHeldItem())) return WandActionResult.BLOCKED;
         ensureSavedTasks();
         World world = player.worldObj;
         if (!loaded(world, x, z) || !UniversalWandActions.isTarget(player, x, y, z)
             || !player.canPlayerEdit(x, y, z, 1, player.getHeldItem())
-            || !world.canMineBlock(player, x, y, z)) return;
+            || !world.canMineBlock(player, x, y, z)) return WandActionResult.BLOCKED;
         MovingObjectPosition hit = UniversalWandActions.rayTrace(player);
         PlayerInteractEvent interaction = ForgeEventFactory
             .onPlayerInteract(player, PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK, x, y, z, hit.sideHit, world);
         if (interaction.isCanceled() || interaction.useBlock == cpw.mods.fml.common.eventhandler.Event.Result.DENY
-            || interaction.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY) return;
+            || interaction.useItem == cpw.mods.fml.common.eventhandler.Event.Result.DENY)
+            return WandActionResult.BLOCKED;
         TargetKey key = new TargetKey(player.dimension, x, y, z);
         Task task = TASKS.get(key);
         if (task != null && !task.owner.equals(player.getUniqueID())) {
-            return;
+            return WandActionResult.BLOCKED;
         }
         int rate = cancel ? 0 : ItemUniversalWand.getAccelerationRate(player.getHeldItem());
         if (rate == 0) {
             if (task != null) {
                 remove(key, task);
-                UniversalWandRightClick.handled(player, true);
+                return WandActionResult.HANDLED;
             }
-            return;
+            return WandActionResult.NO_EFFECT;
         }
         TileEntity tile = player.worldObj.getTileEntity(x, y, z);
         Block block = world.getBlock(x, y, z);
         if (!(tile == null ? block.getTickRandomly() : isValid(tile))) {
-            return;
+            return WandActionResult.NO_EFFECT;
         }
         if (task == null) {
             task = new Task(player.getUniqueID());
@@ -186,7 +188,7 @@ public final class UniversalWandAccelerationHandler {
         task.throttled = false;
         save(key, task);
         sync(key, task);
-        UniversalWandRightClick.handled(player, true);
+        return WandActionResult.HANDLED;
     }
 
     private static boolean loaded(World world, int x, int z) {

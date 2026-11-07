@@ -11,9 +11,11 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import com.tenkeitech.TenkeiTech;
+import com.tenkeitech.item.WandRightClickRouter;
 import com.tenkeitech.universalwand.building.BuildingContext;
 import com.tenkeitech.universalwand.building.BuildingContext.Position;
 import com.tenkeitech.universalwand.building.BuildingUndoHistory;
+import com.tenkeitech.universalwand.interaction.WandRightClickContext;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.common.network.NetworkRegistry;
@@ -48,9 +50,9 @@ public final class UniversalWandNetwork {
         CHANNEL
             .registerMessage(AccelerationManagementHandler.class, AccelerationManagementMessage.class, 14, Side.SERVER);
         CHANNEL.registerMessage(AccelerationNoticeHandler.class, AccelerationNoticeMessage.class, 15, Side.CLIENT);
-        CHANNEL.registerMessage(TravelFallbackHandler.class, TravelFallbackRequest.class, 16, Side.SERVER);
-        CHANNEL.registerMessage(TravelFallbackGrantHandler.class, TravelFallbackGrant.class, 17, Side.CLIENT);
-        CHANNEL.registerMessage(TravelFallbackFinishHandler.class, TravelFallbackFinish.class, 18, Side.SERVER);
+        CHANNEL.registerMessage(RightClickHandler.class, RightClickRequest.class, 16, Side.SERVER);
+        CHANNEL.registerMessage(RightClickGrantHandler.class, RightClickGrant.class, 17, Side.CLIENT);
+        CHANNEL.registerMessage(RightClickFinishHandler.class, RightClickFinish.class, 18, Side.SERVER);
         CHANNEL.registerMessage(FeatureHandler.class, FeatureMessage.class, 19, Side.CLIENT);
     }
 
@@ -85,25 +87,25 @@ public final class UniversalWandNetwork {
         }
     }
 
-    public static void requestTravelFallback(int id) {
-        CHANNEL.sendToServer(new TravelFallbackRequest(id));
+    public static void beginRightClick(int id) {
+        CHANNEL.sendToServer(new RightClickRequest(id));
     }
 
-    public static void allowTravelFallback(EntityPlayerMP player, int id) {
-        CHANNEL.sendTo(new TravelFallbackGrant(id), player);
+    public static void continueRightClick(EntityPlayerMP player, int id, int action) {
+        CHANNEL.sendTo(new RightClickGrant(id, action), player);
     }
 
-    public static void finishTravelFallback(int id) {
-        CHANNEL.sendToServer(new TravelFallbackFinish(id));
+    public static void finishRightClick(int id, boolean blocked) {
+        CHANNEL.sendToServer(new RightClickFinish(id, blocked));
     }
 
-    public static class TravelFallbackRequest implements IMessage {
+    public static class RightClickRequest implements IMessage {
 
         int id;
 
-        public TravelFallbackRequest() {}
+        public RightClickRequest() {}
 
-        TravelFallbackRequest(int id) {
+        RightClickRequest(int id) {
             this.id = id;
         }
 
@@ -116,44 +118,74 @@ public final class UniversalWandNetwork {
         }
     }
 
-    public static final class TravelFallbackGrant extends TravelFallbackRequest {
+    public static final class RightClickGrant extends RightClickRequest {
 
-        public TravelFallbackGrant() {}
+        private int action;
 
-        TravelFallbackGrant(int id) {
+        public RightClickGrant() {}
+
+        RightClickGrant(int id, int action) {
             super(id);
+            this.action = action;
+        }
+
+        @Override
+        public void fromBytes(ByteBuf buffer) {
+            super.fromBytes(buffer);
+            action = buffer.readInt();
+        }
+
+        @Override
+        public void toBytes(ByteBuf buffer) {
+            super.toBytes(buffer);
+            buffer.writeInt(action);
         }
     }
 
-    public static final class TravelFallbackHandler implements IMessageHandler<TravelFallbackRequest, IMessage> {
+    public static final class RightClickHandler implements IMessageHandler<RightClickRequest, IMessage> {
 
-        public IMessage onMessage(TravelFallbackRequest message, MessageContext context) {
+        public IMessage onMessage(RightClickRequest message, MessageContext context) {
             UniversalWandRightClick.request(context.getServerHandler().playerEntity, message.id);
             return null;
         }
     }
 
-    public static final class TravelFallbackFinish extends TravelFallbackRequest {
+    public static final class RightClickFinish extends RightClickRequest {
 
-        public TravelFallbackFinish() {}
+        private boolean blocked;
 
-        TravelFallbackFinish(int id) {
+        public RightClickFinish() {}
+
+        RightClickFinish(int id, boolean blocked) {
             super(id);
+            this.blocked = blocked;
+        }
+
+        @Override
+        public void fromBytes(ByteBuf buffer) {
+            super.fromBytes(buffer);
+            blocked = buffer.readBoolean();
+        }
+
+        @Override
+        public void toBytes(ByteBuf buffer) {
+            super.toBytes(buffer);
+            buffer.writeBoolean(blocked);
         }
     }
 
-    public static final class TravelFallbackFinishHandler implements IMessageHandler<TravelFallbackFinish, IMessage> {
+    public static final class RightClickFinishHandler implements IMessageHandler<RightClickFinish, IMessage> {
 
-        public IMessage onMessage(TravelFallbackFinish message, MessageContext context) {
-            UniversalWandRightClick.finish(context.getServerHandler().playerEntity, message.id);
+        public IMessage onMessage(RightClickFinish message, MessageContext context) {
+            UniversalWandRightClick.finish(context.getServerHandler().playerEntity, message.id, message.blocked);
             return null;
         }
     }
 
-    public static final class TravelFallbackGrantHandler implements IMessageHandler<TravelFallbackGrant, IMessage> {
+    public static final class RightClickGrantHandler implements IMessageHandler<RightClickGrant, IMessage> {
 
-        public IMessage onMessage(TravelFallbackGrant message, MessageContext context) {
-            TenkeiTech.proxy.allowWandTravel(message.id);
+        public IMessage onMessage(RightClickGrant message, MessageContext context) {
+            TenkeiTech.proxy.allowWandClientAction(message.id, message.action);
             return null;
         }
     }
@@ -685,15 +717,22 @@ public final class UniversalWandNetwork {
 
         @Override
         public IMessage onMessage(BuildStartMessage message, MessageContext context) {
-            UniversalWandBuildingHandler.requestStart(
-                context.getServerHandler().playerEntity,
-                message.x,
-                message.y,
-                message.z,
-                message.side,
-                message.hitX,
-                message.hitY,
-                message.hitZ,
+            EntityPlayerMP player = context.getServerHandler().playerEntity;
+            WandRightClickRouter.requestBuilding(
+                new WandRightClickContext(
+                    WandRightClickContext.Phase.BLOCK_FIRST,
+                    player.getHeldItem(),
+                    player,
+                    player.worldObj,
+                    message.x,
+                    message.y,
+                    message.z,
+                    message.side,
+                    message.hitX,
+                    message.hitY,
+                    message.hitZ,
+                    null,
+                    0),
                 message.core,
                 message.undo);
             return null;

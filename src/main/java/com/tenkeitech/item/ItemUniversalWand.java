@@ -44,15 +44,14 @@ import com.tenkeitech.gui.UniversalWandGui;
 import com.tenkeitech.integration.backhand.UniversalWandBackhandIntegration;
 import com.tenkeitech.mixin.client.PlayerControllerMPAccessor;
 import com.tenkeitech.universalwand.UniversalWandActions;
-import com.tenkeitech.universalwand.UniversalWandBuildingHandler;
 import com.tenkeitech.universalwand.UniversalWandFeature;
 import com.tenkeitech.universalwand.UniversalWandMiningHandler;
-import com.tenkeitech.universalwand.UniversalWandNetwork;
 import com.tenkeitech.universalwand.UniversalWandStorage;
-import com.tenkeitech.universalwand.building.BuildingUndoHistory;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
+import com.tenkeitech.universalwand.interaction.WandRightClickContext;
+import com.tenkeitech.universalwand.interaction.WandRightClickContext.Phase;
 
 import appeng.api.implementations.items.IAEWrench;
-import appeng.api.implementations.tiles.IWirelessAccessPoint;
 import appeng.api.parts.IPartHost;
 import appeng.api.parts.SelectedPart;
 import appeng.core.sync.GuiBridge;
@@ -201,13 +200,7 @@ public final class ItemUniversalWand extends Item
 
     @Override
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        if (!player.isSneaking() && isBuildingEnabled(stack)) {
-            boolean undo = world.isRemote ? TenkeiTech.proxy.isWandUndoKeyHeld() : BuildingUndoHistory.isActive(player);
-            if (!undo && getBuildingCore(stack) == BuildingCore.ANGEL) {
-                if (!world.isRemote && player instanceof EntityPlayerMP mp) UniversalWandBuildingHandler.requestAir(mp);
-            }
-        }
-        if (world.isRemote) TenkeiTech.proxy.useWandTravelIfImmediate(stack, player);
+        WandRightClickRouter.route(WandRightClickContext.air(Phase.AIR, player, stack, 0));
         return stack;
     }
 
@@ -225,61 +218,24 @@ public final class ItemUniversalWand extends Item
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        boolean modifier = world.isRemote ? TenkeiTech.proxy.isWandUndoKeyHeld()
-            : BuildingUndoHistory.isKeyHeld(player);
-        if (world.isRemote && (isTimeAccelerationEnabled(stack) || isBuildingEnabled(stack))) {
-            // Synchronize this click's modifier before the native block-use packet, including a quick key release.
-            UniversalWandNetwork.requestUndoKey(modifier);
-        }
-        if (modifier && player.isSneaking() && isTimeAccelerationEnabled(stack)) {
-            if (world.isRemote) return false;
-            if (player instanceof EntityPlayerMP mp)
-                com.tenkeitech.universalwand.UniversalWandAccelerationHandler.cancel(mp, x, y, z);
-            return true;
-        }
-        boolean wrenchFirst = player.isSneaking() && !modifier && getGtToolMode(stack) == GtToolMode.WRENCH;
-        if (wrenchFirst) {
-            // Preserve the native use packet; only the server may decide whether the wrench handled this click.
-            if (world.isRemote) return false;
-            if (useGtTool(stack, player, world, x, y, z, side, hitX, hitY, hitZ, GtToolMode.WRENCH)) return true;
-        }
-        if (player.isSneaking() && isTimeAccelerationEnabled(stack)) {
-            if (world.isRemote) return false;
-            if (player instanceof EntityPlayerMP mp)
-                com.tenkeitech.universalwand.UniversalWandAccelerationHandler.use(mp, x, y, z);
-            return true;
-        }
-        boolean undo = isBuildingEnabled(stack) && modifier;
-        if (undo) {
-            if (world.isRemote) {
-                UniversalWandNetwork
-                    .requestBuildStart(x, y, z, side, hitX, hitY, hitZ, getBuildingCore(stack).ordinal(), true);
-            } else if (player instanceof EntityPlayerMP mp) UniversalWandBuildingHandler
-                .requestStart(mp, x, y, z, side, hitX, hitY, hitZ, getBuildingCore(stack).ordinal(), true);
-            return true;
-        }
-        if (player.isSneaking() && world.getTileEntity(x, y, z) instanceof IWirelessAccessPoint) {
-            // A true client result prevents 1.7.10 from sending the block-use packet.
-            if (world.isRemote) return false;
-            if (player instanceof EntityPlayerMP mp) UniversalWandStorage.toggleBinding(mp, x, y, z);
-            return true;
-        }
-        if (!player.isSneaking() && isBuildingEnabled(stack)) {
-            if (world.isRemote) UniversalWandNetwork
-                .requestBuildStart(x, y, z, side, hitX, hitY, hitZ, getBuildingCore(stack).ordinal());
-            else if (player instanceof EntityPlayerMP mp) UniversalWandBuildingHandler
-                .requestStart(mp, x, y, z, side, hitX, hitY, hitZ, getBuildingCore(stack).ordinal());
-            return true;
-        }
-        GtToolMode mode = getGtToolMode(stack);
-        if (mode == GtToolMode.OFF || wrenchFirst) {
-            return false;
-        }
-        if (world.isRemote) return false;
-        return useGtTool(stack, player, world, x, y, z, side, hitX, hitY, hitZ, mode);
+        return WandRightClickRouter.useFirst(
+            new WandRightClickContext(
+                Phase.BLOCK_FIRST,
+                stack,
+                player,
+                world,
+                x,
+                y,
+                z,
+                side,
+                hitX,
+                hitY,
+                hitZ,
+                null,
+                0));
     }
 
-    private static boolean useGtTool(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+    static WandActionResult useGtTool(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ, GtToolMode mode) {
         ForgeDirection clickedSide = ForgeDirection.getOrientation(side);
         if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity)) {
@@ -294,7 +250,7 @@ public final class ItemUniversalWand extends Item
                 hitZ = target[6] / 1000F;
                 if (!world.canMineBlock(player, x, y, z) || !player.canPlayerEdit(x, y, z, clickedSide.ordinal(), stack)
                     || !(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity gtTile)
-                    || !gtTile.isUseableByPlayer(player)) return true;
+                    || !gtTile.isUseableByPlayer(player)) return WandActionResult.BLOCKED;
                 PlayerInteractEvent interaction = ForgeEventFactory.onPlayerInteract(
                     player,
                     PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK,
@@ -304,23 +260,23 @@ public final class ItemUniversalWand extends Item
                     clickedSide.ordinal(),
                     world);
                 if (interaction.isCanceled() || interaction.useBlock == Event.Result.DENY
-                    || interaction.useItem == Event.Result.DENY) return true;
+                    || interaction.useItem == Event.Result.DENY) return WandActionResult.BLOCKED;
             }
         }
         if (mode == GtToolMode.WIRE_CUTTER) {
-            return com.tenkeitech.universalwand.UniversalWandRightClick.handled(
-                player,
+            return WandActionResult.nativeResult(
                 GtToolBackend.handleWireCutter(stack, player, world, x, y, z, clickedSide, hitX, hitY, hitZ));
         }
-        return com.tenkeitech.universalwand.UniversalWandRightClick
-            .handled(player, GtToolBackend.handleWrench(stack, player, world, x, y, z, clickedSide, hitX, hitY, hitZ));
+        return WandActionResult
+            .nativeResult(GtToolBackend.handleWrench(stack, player, world, x, y, z, clickedSide, hitX, hitY, hitZ));
     }
 
     @Override
     public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        return com.tenkeitech.universalwand.UniversalWandRightClick
-            .handled(player, VanillaToolBackend.useHoe(stack, player, world, x, y, z, side, hitX, hitY, hitZ));
+        return WandRightClickRouter.route(
+            new WandRightClickContext(Phase.BLOCK_ITEM, stack, player, world, x, y, z, side, hitX, hitY, hitZ, null, 0))
+            .consumesClick();
     }
 
     @Override
@@ -330,8 +286,23 @@ public final class ItemUniversalWand extends Item
             || player.getHeldItem()
                 .getItem() != this)
             return false;
-        return com.tenkeitech.universalwand.UniversalWandRightClick
-            .handled(player, VanillaToolBackend.shearEntity(player.getHeldItem(), player, target));
+        return WandRightClickRouter
+            .route(
+                new WandRightClickContext(
+                    Phase.ENTITY,
+                    player.getHeldItem(),
+                    player,
+                    player.worldObj,
+                    0,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    0,
+                    0,
+                    target,
+                    0))
+            .consumesClick();
     }
 
     /** Finds a mode-compatible GT pipe when its thin collision box leaves a gap in the vanilla ray hit. */

@@ -42,9 +42,11 @@ public class CommonProxy {
             .bus()
             .register(new com.tenkeitech.universalwand.UniversalWandFeaturePolicy());
         com.tenkeitech.autotemplate.AutoTemplateCatalogSync.init();
+        com.tenkeitech.universalwand.UniversalWandRightClick rightClick = new com.tenkeitech.universalwand.UniversalWandRightClick();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(rightClick);
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
-            .register(new com.tenkeitech.universalwand.UniversalWandRightClick());
+            .register(rightClick);
         com.tenkeitech.universalwand.UniversalWandAccelerationHandler accelerationHandler = new com.tenkeitech.universalwand.UniversalWandAccelerationHandler();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(accelerationHandler);
         cpw.mods.fml.common.FMLCommonHandler.instance()
@@ -115,12 +117,12 @@ public class CommonProxy {
 
     public void enqueuePatternUploadPage(PatternUploadNetwork.TargetsPageMessage message) {}
 
-    public void allowWandTravel(int id) {}
+    public void allowWandClientAction(int id, int action) {}
 
     public void receiveQuestSkip(com.tenkeitech.questskip.QuestSkipNetwork.Reply reply,
         net.minecraft.network.INetHandler connection) {}
 
-    public void useWandTravelIfImmediate(net.minecraft.item.ItemStack stack,
+    public void executeWandClientAction(int action, net.minecraft.item.ItemStack stack,
         net.minecraft.entity.player.EntityPlayer player) {}
 
     public void enqueuePatternUploadResult(PatternUploadNetwork.UploadResultMessage message) {}

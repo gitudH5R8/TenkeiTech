@@ -147,13 +147,13 @@ public final class BuildingUndoHistory {
         UniversalWandNetwork.sendUndoPreview(player, new ArrayList<>(positions.values()));
     }
 
-    public static void undo(EntityPlayerMP player, Position clicked) {
+    public static boolean undo(EntityPlayerMP player, Position clicked) {
         ItemStack wand = player.getHeldItem();
         Entry entry = latest(player);
         if (!isActive(player) || !BuildingUndoRecord.active(player, wand)
             || entry == null
             || !withinRange(entry, clicked)
-            || !UNDOING.add(player.getUniqueID())) return;
+            || !UNDOING.add(player.getUniqueID())) return false;
         List<ItemStack> refunds = new ArrayList<>();
         int restored = 0;
         try {
@@ -168,7 +168,6 @@ public final class BuildingUndoHistory {
                 if (!record.restore(player, wand)) continue;
                 iterator.remove();
                 restored++;
-                com.tenkeitech.universalwand.UniversalWandRightClick.handled(player, true);
                 ItemStack refund = record.takeRefund();
                 if (refund != null) refunds.add(refund);
             }
@@ -183,6 +182,7 @@ public final class BuildingUndoHistory {
             if (restored > 0)
                 player.worldObj.playSoundEffect(player.posX, player.posY, player.posZ, "mob.endermen.portal", 0.5F, 1F);
         }
+        return restored > 0;
     }
 
     private static boolean withinRange(Entry entry, Position clicked) {

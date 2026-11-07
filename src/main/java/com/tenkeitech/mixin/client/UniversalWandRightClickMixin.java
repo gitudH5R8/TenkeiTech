@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.tenkeitech.client.UniversalWandTravelFallback;
+import com.tenkeitech.client.UniversalWandRightClickClient;
 
 /** Bracket native right-click packets without cancelling or replaying any interaction. */
 @Mixin(Minecraft.class)
@@ -19,11 +19,11 @@ public abstract class UniversalWandRightClickMixin {
 
     @Inject(method = "func_147121_ag", at = @At("HEAD"))
     private void tenkeitech$beginWandClick(CallbackInfo ci) {
-        UniversalWandTravelFallback.beginClick();
+        UniversalWandRightClickClient.beginClick();
     }
 
     @Inject(method = "func_147121_ag", at = @At("RETURN"))
     private void tenkeitech$finishWandClick(CallbackInfo ci) {
-        UniversalWandTravelFallback.finishClick();
+        UniversalWandRightClickClient.finishClick();
     }
 }

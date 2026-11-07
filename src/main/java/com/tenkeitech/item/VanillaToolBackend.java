@@ -18,6 +18,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.IShearable;
 
 import com.tenkeitech.universalwand.UniversalWandMiningHandler;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 /** Native item callbacks see a real tool; the original wand is restored before returning. */
 public final class VanillaToolBackend {
@@ -95,18 +96,19 @@ public final class VanillaToolBackend {
         }
     }
 
-    public static boolean useHoe(ItemStack wand, EntityPlayer player, World world, int x, int y, int z, int side,
-        float hitX, float hitY, float hitZ) {
-        if (!canUse(player, wand) || !ItemUniversalWand.isHoeEnabled(wand)
-            || world != player.worldObj
+    public static WandActionResult useHoe(ItemStack wand, EntityPlayer player, World world, int x, int y, int z,
+        int side, float hitX, float hitY, float hitZ) {
+        if (!ItemUniversalWand.isHoeEnabled(wand)) return WandActionResult.PASS;
+        if (!canUse(player, wand) || world != player.worldObj
             || !world.blockExists(x, y, z)
-            || !player.canPlayerEdit(x, y, z, side, wand)) return false;
+            || !player.canPlayerEdit(x, y, z, side, wand)) return WandActionResult.BLOCKED;
         if (!world.isRemote && world instanceof WorldServer serverWorld
             && net.minecraft.server.MinecraftServer.getServer()
                 .isBlockProtected(serverWorld, x, y, z, player))
-            return false;
+            return WandActionResult.BLOCKED;
         try (HeldTool tool = new HeldTool(player, wand, Items.diamond_hoe)) {
-            return Items.diamond_hoe.onItemUse(tool.tool, player, world, x, y, z, side, hitX, hitY, hitZ);
+            return WandActionResult
+                .nativeResult(Items.diamond_hoe.onItemUse(tool.tool, player, world, x, y, z, side, hitX, hitY, hitZ));
         }
     }
 

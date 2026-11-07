@@ -15,6 +15,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import com.tenkeitech.TenkeiTech;
 import com.tenkeitech.item.ItemUniversalWand.BuildingCore;
 import com.tenkeitech.universalwand.UniversalWandStorage;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 /** Adapted WandJob: plan once, then execute all accepted snapshots in the same server action. */
 public final class BuildingJob {
@@ -45,8 +46,9 @@ public final class BuildingJob {
         return Collections.unmodifiableList(snapshots);
     }
 
-    public void execute() {
-        if (!(context.player instanceof EntityPlayerMP player)) return;
+    public WandActionResult execute() {
+        if (!(context.player instanceof EntityPlayerMP player)) return WandActionResult.BLOCKED;
+        WandActionResult outcome = WandActionResult.NO_EFFECT;
         Block soundBlock = null;
         List<BuildingUndoRecord> executed = new ArrayList<>();
         try {
@@ -61,12 +63,13 @@ public final class BuildingJob {
                 }
                 if (result == BuildingSnapshot.Result.STOP) break;
                 if (result == BuildingSnapshot.Result.CHANGED) {
-                    com.tenkeitech.universalwand.UniversalWandRightClick.handled(player, true);
+                    outcome = WandActionResult.HANDLED;
                     if (soundBlock == null) soundBlock = snapshot.getMaterialBlock();
                 }
             }
         } catch (RuntimeException failure) {
             TenkeiTech.LOG.error("Universal Wand building stopped for {}", player.getCommandSenderName(), failure);
+            outcome = WandActionResult.BLOCKED;
         } finally {
             BuildingUndoHistory.add(player, context, executed, refundDestination);
             if (soundBlock != null) context.world.playSoundEffect(
@@ -79,5 +82,6 @@ public final class BuildingJob {
             player.sendContainerToPlayer(player.inventoryContainer);
             if (supplier != null) supplier.onFinished();
         }
+        return outcome;
     }
 }

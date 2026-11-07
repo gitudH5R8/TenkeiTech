@@ -27,6 +27,7 @@ import com.tenkeitech.universalwand.building.BuildingContext.Position;
 import com.tenkeitech.universalwand.building.BuildingJob;
 import com.tenkeitech.universalwand.building.BuildingUndoHistory;
 import com.tenkeitech.universalwand.building.InventorySupplier;
+import com.tenkeitech.universalwand.interaction.WandActionResult;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.Event;
@@ -52,6 +53,7 @@ public final class UniversalWandBuildingHandler {
         final int heldSlot;
         final ItemStack wandSnapshot;
         final boolean undo;
+        UniversalWandRightClick.Ticket ticket;
 
         Request(EntityPlayerMP player, int x, int y, int z, int side, float hitX, float hitY, float hitZ, int core,
             BuildingContext airContext, boolean undo) {
@@ -72,13 +74,13 @@ public final class UniversalWandBuildingHandler {
         }
     }
 
-    public static void requestStart(EntityPlayerMP player, int x, int y, int z, int side, float hitX, float hitY,
-        float hitZ, int core) {
-        requestStart(player, x, y, z, side, hitX, hitY, hitZ, core, false);
+    public static WandActionResult requestStart(EntityPlayerMP player, int x, int y, int z, int side, float hitX,
+        float hitY, float hitZ, int core) {
+        return requestStart(player, x, y, z, side, hitX, hitY, hitZ, core, false);
     }
 
-    public static void requestStart(EntityPlayerMP player, int x, int y, int z, int side, float hitX, float hitY,
-        float hitZ, int core, boolean undo) {
+    public static WandActionResult requestStart(EntityPlayerMP player, int x, int y, int z, int side, float hitX,
+        float hitY, float hitZ, int core, boolean undo) {
         if (player != null && side >= 0
             && side < 6
             && validHit(hitX)
@@ -86,14 +88,15 @@ public final class UniversalWandBuildingHandler {
             && validHit(hitZ)
             && core >= 0
             && core < BuildingCore.values().length)
-            REQUESTS.put(player.getUniqueID(), new Request(player, x, y, z, side, hitX, hitY, hitZ, core, null, undo));
+            return enqueue(new Request(player, x, y, z, side, hitX, hitY, hitZ, core, null, undo));
+        return WandActionResult.BLOCKED;
     }
 
     /** Native air-use packets carry no placement coordinates; derive them on the server. */
-    public static void requestAir(EntityPlayerMP player) {
-        if (!ItemUniversalWand.isHeldBy(player)) return;
+    public static WandActionResult requestAir(EntityPlayerMP player) {
+        if (!ItemUniversalWand.isHeldBy(player)) return WandActionResult.BLOCKED;
         BuildingContext context = BuildingContext.createAir(player, player.getHeldItem());
-        if (context == null) return;
+        if (context == null) return WandActionResult.NO_EFFECT;
         Request request = new Request(
             player,
             context.origin.x,
@@ -107,18 +110,25 @@ public final class UniversalWandBuildingHandler {
             context,
             false);
         // A block-use fallback must not replace a pending clicked-surface action with an air action.
-        REQUESTS.compute(
-            player.getUniqueID(),
-            (id, previous) -> previous != null && previous.airContext == null ? previous : request);
+        Request previous = REQUESTS.get(player.getUniqueID());
+        if (previous != null && previous.airContext == null)
+            return previous.ticket != null && previous.ticket.isCurrent(player) ? WandActionResult.PENDING
+                : WandActionResult.NO_EFFECT;
+        return enqueue(request);
     }
 
     private static boolean validHit(float hit) {
         return Float.isFinite(hit) && hit >= 0F && hit <= 1F;
     }
 
-    public static boolean hasPendingAction(EntityPlayerMP player) {
-        Request request = REQUESTS.get(player.getUniqueID());
-        return request != null && request.player == player;
+    private static WandActionResult enqueue(Request request) {
+        Request previous = REQUESTS.get(request.player.getUniqueID());
+        if (previous != null && previous.ticket != null && previous.ticket.isCurrent(request.player))
+            return WandActionResult.PENDING;
+        request.ticket = UniversalWandRightClick.defer(request.player);
+        previous = REQUESTS.put(request.player.getUniqueID(), request);
+        if (previous != null) UniversalWandRightClick.complete(previous.ticket, WandActionResult.BLOCKED);
+        return WandActionResult.PENDING;
     }
 
     public static void requestSupply(EntityPlayerMP player, int x, int y, int z, int side, float hitX, float hitY,
@@ -167,15 +177,17 @@ public final class UniversalWandBuildingHandler {
         for (Map.Entry<UUID, Request> entry : REQUESTS.entrySet()) {
             Request request = entry.getValue();
             if (!REQUESTS.remove(entry.getKey(), request)) continue;
-            try {
-                execute(request);
+            WandActionResult result = WandActionResult.BLOCKED;
+            try (UniversalWandRightClick.Scope scope = UniversalWandRightClick
+                .executing(request.player, request.ticket)) {
+                result = execute(request);
             } catch (RuntimeException failure) {
                 TenkeiTech.LOG.error(
                     "Universal Wand building request failed for {}",
                     request.player.getCommandSenderName(),
                     failure);
             } finally {
-                UniversalWandRightClick.complete(request.player);
+                UniversalWandRightClick.complete(request.ticket, result);
             }
         }
         for (Map.Entry<UUID, Request> entry : SUPPLY_REQUESTS.entrySet()) {
@@ -188,7 +200,7 @@ public final class UniversalWandBuildingHandler {
         }
     }
 
-    private static void execute(Request request) {
+    private static WandActionResult execute(Request request) {
         EntityPlayerMP player = request.player;
         if (player.isDead || player.dimension != request.dimension
             || player.worldObj == null
@@ -198,13 +210,14 @@ public final class UniversalWandBuildingHandler {
             || !ItemUniversalWand.isBuildingEnabled(player.getHeldItem())
             || ItemUniversalWand.getBuildingCore(player.getHeldItem())
                 .ordinal() != request.core)
-            return;
+            return WandActionResult.BLOCKED;
         if (request.undo) {
-            if (!BuildingUndoHistory.isActive(player) || validateClick(request) == null) return;
+            if (!BuildingUndoHistory.isActive(player) || validateClick(request) == null)
+                return WandActionResult.BLOCKED;
             if (!player.canPlayerEdit(request.x, request.y, request.z, request.side, player.getHeldItem())
                 || MinecraftServer.getServer()
                     .isBlockProtected((WorldServer) player.worldObj, request.x, request.y, request.z, player))
-                return;
+                return WandActionResult.BLOCKED;
             PlayerInteractEvent interaction = ForgeEventFactory.onPlayerInteract(
                 player,
                 PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK,
@@ -213,28 +226,30 @@ public final class UniversalWandBuildingHandler {
                 request.z,
                 request.side,
                 player.worldObj);
-            if (!interaction.isCanceled() && interaction.useItem != Event.Result.DENY)
-                BuildingUndoHistory.undo(player, new Position(request.x, request.y, request.z));
-            return;
+            if (interaction.isCanceled() || interaction.useItem == Event.Result.DENY) return WandActionResult.BLOCKED;
+            return BuildingUndoHistory.undo(player, new Position(request.x, request.y, request.z))
+                ? WandActionResult.HANDLED
+                : WandActionResult.NO_EFFECT;
         }
-        if (BuildingUndoHistory.isActive(player)) return;
+        if (BuildingUndoHistory.isActive(player)) return WandActionResult.BLOCKED;
         BuildingContext context;
         if (request.airContext != null) {
             context = request.airContext;
             if (request.heldSlot != player.inventory.currentItem
                 || !ItemStack.areItemStacksEqual(request.wandSnapshot, player.getHeldItem())
                 || context.world != player.worldObj
-                || !validateAir(context)) return;
+                || !validateAir(context)) return WandActionResult.BLOCKED;
             context = context.withWand(player.getHeldItem());
         } else {
             MovingObjectPosition hit = validateClick(request);
-            if (hit == null) return;
+            if (hit == null) return WandActionResult.BLOCKED;
             context = BuildingContext.create(player, player.getHeldItem(), hit);
         }
-        if (context == null) return;
+        if (context == null) return WandActionResult.NO_EFFECT;
         if (MinecraftServer.getServer()
             .isBlockProtected((WorldServer) player.worldObj, request.x, request.y, request.z, player)
-            || !player.canPlayerEdit(request.x, request.y, request.z, request.side, context.wand)) return;
+            || !player.canPlayerEdit(request.x, request.y, request.z, request.side, context.wand))
+            return WandActionResult.BLOCKED;
         PlayerInteractEvent interaction = ForgeEventFactory.onPlayerInteract(
             player,
             context.air ? PlayerInteractEvent.Action.RIGHT_CLICK_AIR : PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK,
@@ -244,11 +259,11 @@ public final class UniversalWandBuildingHandler {
             request.side,
             player.worldObj);
         if (interaction.isCanceled() || interaction.useItem == Event.Result.DENY
-            || player.getHeldItem() != context.wand) return;
+            || player.getHeldItem() != context.wand) return WandActionResult.BLOCKED;
         BuildingJob job = new BuildingJob(context);
-        if (!job.isSupported()) return;
+        if (!job.isSupported()) return WandActionResult.NO_EFFECT;
         job.getSnapshots(BuildingContext.MAX_BLOCKS);
-        job.execute();
+        return job.execute();
     }
 
     private static boolean validateAir(BuildingContext context) {
@@ -319,13 +334,16 @@ public final class UniversalWandBuildingHandler {
 
     @SubscribeEvent
     public void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
-        REQUESTS.remove(event.player.getUniqueID());
+        Request request = REQUESTS.remove(event.player.getUniqueID());
+        if (request != null) UniversalWandRightClick.complete(request.ticket, WandActionResult.BLOCKED);
         SUPPLY_REQUESTS.remove(event.player.getUniqueID());
         LAST_SUPPLY_TICK.remove(event.player.getUniqueID());
         BuildingUndoHistory.clear(event.player.getUniqueID());
     }
 
     public static void clearAll() {
+        REQUESTS.values()
+            .forEach(request -> UniversalWandRightClick.complete(request.ticket, WandActionResult.BLOCKED));
         REQUESTS.clear();
         SUPPLY_REQUESTS.clear();
         LAST_SUPPLY_TICK.clear();
@@ -337,7 +355,11 @@ public final class UniversalWandBuildingHandler {
         if (event.world.isRemote) return;
         BuildingUndoHistory.unload(event.world);
         REQUESTS.entrySet()
-            .removeIf(entry -> entry.getValue().player.worldObj == event.world);
+            .removeIf(entry -> {
+                if (entry.getValue().player.worldObj != event.world) return false;
+                UniversalWandRightClick.complete(entry.getValue().ticket, WandActionResult.BLOCKED);
+                return true;
+            });
         SUPPLY_REQUESTS.entrySet()
             .removeIf(entry -> entry.getValue().player.worldObj == event.world);
         for (Object player : event.world.playerEntities)

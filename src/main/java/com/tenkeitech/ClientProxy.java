@@ -48,11 +48,11 @@ public class ClientProxy extends CommonProxy {
         PatternModeTooltip.init();
         AutoTemplateSearchInput.init();
         UniversalWandKeyHandler.init();
-        com.tenkeitech.client.UniversalWandTravelFallback travelFallback = new com.tenkeitech.client.UniversalWandTravelFallback();
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(travelFallback);
+        com.tenkeitech.client.UniversalWandRightClickClient rightClick = new com.tenkeitech.client.UniversalWandRightClickClient();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(rightClick);
         cpw.mods.fml.common.FMLCommonHandler.instance()
             .bus()
-            .register(travelFallback);
+            .register(rightClick);
         cpw.mods.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
             com.tenkeitech.universalwand.EntityUselessWandItem.class,
             new net.minecraft.client.renderer.entity.RenderItem());
@@ -134,14 +134,15 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
-    public void allowWandTravel(int id) {
-        com.tenkeitech.client.UniversalWandTravelFallback.allow(id);
+    public void allowWandClientAction(int id, int action) {
+        com.tenkeitech.client.UniversalWandRightClickClient.allow(id, action);
     }
 
     @Override
-    public void useWandTravelIfImmediate(net.minecraft.item.ItemStack stack,
+    public void executeWandClientAction(int action, net.minecraft.item.ItemStack stack,
         net.minecraft.entity.player.EntityPlayer player) {
-        com.tenkeitech.client.UniversalWandTravelFallback.useIfImmediate(stack, player);
+        if (action == com.tenkeitech.item.WandRightClickRouter.Action.TELEPORT.ordinal())
+            com.tenkeitech.integration.enderio.UniversalWandTravelIntegration.use(stack, player.worldObj, player);
     }
 
     @Override

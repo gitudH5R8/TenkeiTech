@@ -206,13 +206,13 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 - 玩家保护可阻止伤害并清除负面药效；高级隐身隐藏玩家及装备，并避免由自己触发自然刷怪或原版刷怪笼。
   特殊 Boss 和自定义 AI 的效果取决于兼容情况。
 - 开启“扭曲抑制”后，携带工具可阻止神秘时代 4（含 WarpTheory）的扭曲事件，并以专属聊天提示代替。
-- 开启传送后，使用 Ender IO **传送权杖**的操作与距离设置。建筑、收获等右键操作优先，未执行其他操作时才传送。
+- 开启传送后，使用 Ender IO **传送权杖**的操作与距离设置，最后判定传送。建筑、撤回、时间加速或其他交互接管点击后不会传送。
 
 ##### 时间加速
 
 在 G 界面打开时间加速设置，选择倍率与持续方式，再潜行右键目标应用。支持适用机器和随机刻方块，
 默认倍率档位最高为 **1024**，可由服务器配置。
-扳手模式下，潜行右键优先执行扳手操作，成功后不再加速或传送。
+潜行右键优先绑定 AE 访问点，其次执行当前 GT 扳手／剪线钳；这些操作接管后不再应用加速或传送。
 
 - 持续方式分为 **30 秒、永久动态降频、永久无休眠降频**；动态降频可在识别到机器空闲时降低加速频率。
 - 执行方式可选普通模式或 GT 模式：普通模式完整加速运行并正常耗能，GT 模式针对 GT 机器推进进度。
@@ -237,7 +237,7 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 | V / Shift + V | 提高／降低飞行速度 |
 | 潜行 + 滚轮 | 开启时间加速并手持工具时切换加速倍率 |
 
-可在 Minecraft 控制设置中调整已注册的快捷键。多个右键功能同时开启时，请留意当前选中的模式。
+可在 Minecraft 控制设置中调整已注册的快捷键。GT 工具优先于建筑和撤回；需要后两项时，请关闭工具模式或选择工具未接管的目标。
 
 服务器可限制无用之杖的功能，被禁用的选项会灰显并提示“已禁用”。
 
@@ -516,12 +516,12 @@ Check the preview for other special-block restrictions.
 - Player protection blocks damage and clears harmful effects. Advanced stealth hides the player and equipment and stops that player from activating natural spawning or vanilla spawners.
   Special bosses and custom AI depend on compatibility.
 - Enable **Warp suppression** to block Thaumcraft 4 warp events (including WarpTheory) while carrying the wand, with a custom chat message instead.
-- Teleport uses Ender IO's **Staff of Teleportation** controls and range settings. Other right-click actions, such as building or harvesting, take priority; teleport occurs when no other action succeeds.
+- Teleport uses Ender IO's **Staff of Teleportation** controls and range settings and is checked last. Building, undo, acceleration or another interaction that takes the click prevents teleportation.
 
 ##### Time Acceleration
 
 Choose a rate and duration in G settings, then sneak-right-click a supported machine or random-ticking block.
-In wrench mode, sneak-right-click prioritizes wrench actions; a handled action prevents acceleration and teleportation.
+Sneak-right-click prioritizes AE access point binding, then the selected GT wrench or wire cutter. A handled action prevents acceleration and teleportation.
 Default rates reach **1024**, configurable by the server. Duration choices are **30 seconds**, **permanent with dynamic throttling**, and **permanent without idle throttling**.
 Normal mode speeds up full operation with normal energy use; GT mode advances GT machine progress. Reapply after changing settings.
 Targets show their rate and remaining time; permanent targets survive restarts and can be removed through placement history.
@@ -546,6 +546,7 @@ replace condensate with source fluids, or omit Cutter fluids. Omitting fluids fr
 | Sneak-scroll | Change acceleration rate while holding the wand with acceleration enabled |
 
 Registered key bindings can be changed in Minecraft's controls menu.
+GT tools take priority over building and undo; turn tool mode off or choose a target the tool does not handle to use those actions.
 
 Servers can restrict wand features. Disabled options appear grayed out and show a disabled tooltip.
 
