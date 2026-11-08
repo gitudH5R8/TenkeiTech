@@ -226,6 +226,7 @@ public final class UniversalWandAccelerationHandler {
             }
             try {
                 accelerate(entry.getKey(), task);
+                if (TASKS.get(entry.getKey()) != task) continue;
                 if (task.remaining > 0) task.remaining--;
                 if (++task.syncTicks >= 20) {
                     task.syncTicks = 0;
@@ -253,6 +254,10 @@ public final class UniversalWandAccelerationHandler {
             task.throttled = false;
             return;
         }
+        if (world.isAirBlock(key.x, key.y, key.z)) {
+            remove(key, task);
+            return;
+        }
         TileEntity tile = world.getTileEntity(key.x, key.y, key.z);
         Block block = world.getBlock(key.x, key.y, key.z);
         if (!(tile == null ? block.getTickRandomly() : isValid(tile))) return;
@@ -261,8 +266,9 @@ public final class UniversalWandAccelerationHandler {
         if (task.throttled) extra = Math.min(extra, 4);
         if (task.gtMode && tile instanceof IGregTechTileEntity gt && accelerateGt(gt, tile, extra)) return;
         for (int i = 0; i < extra; i++) {
-            // Stop this batch when the target changes; the next server tick resolves the new target.
-            if (!loaded(world, key.x, key.z) || world.getBlock(key.x, key.y, key.z) != block
+            // A committed removal deletes the task, including removal during its own extra updates.
+            if (TASKS.get(key) != task || !loaded(world, key.x, key.z)
+                || world.getBlock(key.x, key.y, key.z) != block
                 || world.getTileEntity(key.x, key.y, key.z) != tile) break;
             if (tile != null) {
                 if (!isValid(tile)) break;
@@ -443,6 +449,14 @@ public final class UniversalWandAccelerationHandler {
         if (!event.world.isRemote && event.world.provider.dimensionId == 0) ensureSavedTasks();
     }
 
+    /** Called after a successful world change, including accepted Forge snapshot transactions. */
+    public static void onBlockChanged(World world, int x, int y, int z, Block replacement) {
+        if (world.isRemote || world.captureBlockSnapshots || world.restoringBlockSnapshots || TASKS.isEmpty()) return;
+        TargetKey key = new TargetKey(world.provider.dimensionId, x, y, z);
+        Task task = TASKS.get(key);
+        if (task != null && replacement.isAir(world, x, y, z)) remove(key, task);
+    }
+
     private static void discardDisabledTasks() {
         MANAGEMENT.clear();
         TASKS.forEach(UniversalWandAccelerationHandler::remove);
@@ -460,7 +474,7 @@ public final class UniversalWandAccelerationHandler {
     }
 
     private static void remove(TargetKey key, Task task) {
-        TASKS.remove(key, task);
+        if (!TASKS.remove(key, task)) return;
         task.remaining = 0;
         if (saved != null) {
             saved.tasks.remove(key);

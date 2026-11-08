@@ -217,7 +217,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 - 持续方式分为 **30 秒、永久动态降频、永久无休眠降频**；动态降频可在识别到机器空闲时降低加速频率。
 - 执行方式可选普通模式或 GT 模式：普通模式完整加速运行并正常耗能，GT 模式针对 GT 机器推进进度。
 - 目标显示倍率与剩余时间；永久目标可在“放置历史”中查看和清理，保存后可跨重启保留。
-- 开启时间加速时，Ctrl+Shift+右键取消自己设置的目标加速。
+- 开启时间加速时，Ctrl+Shift+右键取消自己设置的目标加速；目标被破坏后自动清除加速。
 - 改动设置后需重新应用到目标；关闭总开关会结束自己的全部加速。倍率不保证产出等比例提高，高倍率会增加服务器负担。
 
 ##### 样板辅助设置
@@ -525,7 +525,7 @@ Sneak-right-click prioritizes AE access point binding, then the selected GT wren
 Default rates reach **1024**, configurable by the server. Duration choices are **30 seconds**, **permanent with dynamic throttling**, and **permanent without idle throttling**.
 Normal mode speeds up full operation with normal energy use; GT mode advances GT machine progress. Reapply after changing settings.
 Targets show their rate and remaining time; permanent targets survive restarts and can be removed through placement history.
-With time acceleration enabled, Ctrl-Shift-right-click cancels acceleration you applied to the target.
+With time acceleration enabled, Ctrl-Shift-right-click cancels acceleration you applied to the target. Breaking the target automatically clears its acceleration.
 Turning the master switch off ends your acceleration tasks. Rates do not guarantee proportional output and high settings increase server load.
 
 ##### Pattern Helpers
