@@ -69,6 +69,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 - **绑定模板**：将固定模板总线与形状或模具无序合成，模板不会消耗；放置后可手持模板潜行右键重新绑定。
 - **选择配方**：打开 GUI 可按产物名称搜索，逐项、按电压层或整页启用／禁用。批量操作仍包含被搜索隐藏的配方。
+- **配方锁**：退回材料按钮左侧可切换锁定；红色闭锁时仅可预览配方，绿色开锁后可继续启用／禁用。
 - **电路分页**：线缆机和卷板机各有七页独立设置与供料，所有已启用页面同时向 ME 提供配方。
 - **自动适配**：按机器实际电压筛选配方；适用的多模式机器可自动切换。缺少对应机器模式时，界面会提示并停用相关配方。
 - **退回材料**：界面提供手动退回按钮；更换模板或修改配方开关前，会先将相关材料退回 ME，未退完则保持原设置。
@@ -391,6 +392,7 @@ ME supplies the ingredients; shapes, molds and circuits do not need to be suppli
 
 Craft a template bus with a shape or mold to bind it without consuming the template. Sneak-right-click a placed bus with a template to rebind.
 The GUI supports output-name search, individual recipe toggles, voltage-tier toggles and whole-page controls.
+The lock to the left of the material-return button turns red for preview only; unlock it (green) to edit recipe settings.
 Wiremill and Bender buses have seven independently supplied pages; all enabled pages remain available to ME.
 
 Recipes follow the machine's voltage and supported modes. Only suitable single-input, single-output recipes for the same material are included.

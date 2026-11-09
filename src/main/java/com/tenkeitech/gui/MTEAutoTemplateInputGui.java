@@ -72,6 +72,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
     private static final int CELL_STEP = 20;
     private static final int CELL_SIZE = 18;
     private static final int SCROLL_X = 302;
+    private static final int LOCK_X = 100;
     private static final int REFUND_X = 122;
     private static final int ENABLE_ALL_X = 144;
     private static final int DISABLE_ALL_X = 216;
@@ -126,6 +127,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
                 .ordinal());
         StringSyncValue modeTarget = new StringSyncValue(machine::getPatternModeRecipeMapId);
         BooleanSyncValue modeAllowsPatterns = new BooleanSyncValue(machine::isPatternModeAvailable);
+        BooleanSyncValue configurationLocked = new BooleanSyncValue(machine::isPatternConfigurationLocked);
         IntSyncValue highlightedTier = new IntSyncValue(session::highlightedTier);
         IntSyncValue rowCount = new IntSyncValue(session::rowCount);
         IntSyncValue selectedCircuitIndex = new IntSyncValue(session::selectedCircuitIndex);
@@ -136,6 +138,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         syncManager.syncValue("auto_template_mode_status", 0, modeStatus);
         syncManager.syncValue("auto_template_mode_target", 0, modeTarget);
         syncManager.syncValue("auto_template_mode_allows_patterns", 0, modeAllowsPatterns);
+        syncManager.syncValue("auto_template_configuration_locked", 0, configurationLocked);
         syncManager.syncValue("auto_template_highlighted_tier", 0, highlightedTier);
         syncManager.syncValue("auto_template_row_count", 0, rowCount);
         syncManager.syncValue("auto_template_selected_circuit", 0, selectedCircuitIndex);
@@ -199,9 +202,16 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
 
         for (int row = 0; row < VISIBLE_ROWS; row++) {
             content.child(
-                createTierRow(syncManager, session, search, row, machineTier, highlightedTier, modeAllowsPatterns)
-                    .pos(0, listY + row * ROW_HEIGHT)
-                    .size(SCROLL_X - 2, ROW_HEIGHT - 1));
+                createTierRow(
+                    syncManager,
+                    session,
+                    search,
+                    row,
+                    machineTier,
+                    highlightedTier,
+                    modeAllowsPatterns,
+                    configurationLocked).pos(0, listY + row * ROW_HEIGHT)
+                        .size(SCROLL_X - 2, ROW_HEIGHT - 1));
         }
 
         content.child(
@@ -227,19 +237,30 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         return content
             .child(
                 new TextWidget<>(
-                    IKey.lang(
-                        "tenkeitech.gui.auto_template.count",
-                        () -> new Object[] { enabledCount.getIntValue(), totalCount.getIntValue() }))
-                            .pos(0, bottomY + 5)
-                            .maxWidth(116))
+                    IKey.dynamic(
+                        () -> configurationLocked.getBoolValue() ? previewOnlyText()
+                            : StatCollector.translateToLocalFormatted(
+                                "tenkeitech.gui.auto_template.count",
+                                enabledCount.getIntValue(),
+                                totalCount.getIntValue()))).addTooltipLine(
+                                    IKey.lang(
+                                        "tenkeitech.gui.auto_template.count",
+                                        () -> new Object[] { enabledCount.getIntValue(), totalCount.getIntValue() }))
+                                    .textAlign(Alignment.CenterLeft)
+                                    .pos(0, bottomY)
+                                    .size(LOCK_X - 4, 18)
+                                    .maxWidth(LOCK_X - 4))
+            .child(
+                createConfigurationLockButton(session, configurationLocked).pos(LOCK_X, bottomY)
+                    .size(18, 18))
             .child(
                 createRefundButton(session).pos(REFUND_X, bottomY)
                     .size(18, 18))
             .child(
-                createSetAllButton(session, true, totalCount).pos(ENABLE_ALL_X, bottomY)
+                createSetAllButton(session, true, totalCount, configurationLocked).pos(ENABLE_ALL_X, bottomY)
                     .size(68, 18))
             .child(
-                createSetAllButton(session, false, totalCount).pos(DISABLE_ALL_X, bottomY)
+                createSetAllButton(session, false, totalCount, configurationLocked).pos(DISABLE_ALL_X, bottomY)
                     .size(68, 18))
             .child(makeLogoWidget().pos(GT_LOGO_X, bottomY));
     }
@@ -294,7 +315,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
 
     private ParentWidget<?> createTierRow(PanelSyncManager syncManager, BrowserSession session,
         AutoTemplateSearchSyncHandler search, int row, IntSyncValue machineTier, IntSyncValue highlightedTier,
-        BooleanSyncValue modeAllowsPatterns) {
+        BooleanSyncValue modeAllowsPatterns, BooleanSyncValue configurationLocked) {
         IntSyncValue tier = new IntSyncValue(() -> session.rowTier(row));
         BooleanSyncValue tierEnabled = new BooleanSyncValue(() -> session.rowTierEnabled(row));
         BooleanSyncValue tierButtonVisible = new BooleanSyncValue(() -> session.rowTierButtonVisible(row));
@@ -308,7 +329,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
 
             @Override
             public boolean onMousePressed(int button) {
-                if (button != 0) return false;
+                if (button != 0 || configurationLocked.getBoolValue()) return false;
                 search.requestTierToggle(tier.getIntValue());
                 return true;
             }
@@ -330,7 +351,10 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
                                 tierEnabled.getBoolValue(),
                                 modeAllowsPatterns.getBoolValue())
                             : ""))
-                .addTooltipLine(StatCollector.translateToLocal("tenkeitech.gui.auto_template.toggle_tier"))
+                .addTooltipLine(
+                    IKey.dynamic(
+                        () -> configurationLocked.getBoolValue() ? previewOnlyText()
+                            : StatCollector.translateToLocal("tenkeitech.gui.auto_template.toggle_tier")))
                 .setEnabledIf(
                     widget -> tierButtonVisible.getBoolValue() && tier.getIntValue() >= 0 && !search.isPending())
                 .pos(0, 1)
@@ -347,7 +371,8 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
                     tier,
                     machineTier,
                     tierEnabled,
-                    modeAllowsPatterns).pos(CELL_START_X + column * CELL_STEP, 1)
+                    modeAllowsPatterns,
+                    configurationLocked).pos(CELL_START_X + column * CELL_STEP, 1)
                         .size(CELL_SIZE, CELL_SIZE));
         }
         return tierRow;
@@ -355,7 +380,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
 
     private ButtonWidget<?> createPatternCell(PanelSyncManager syncManager, BrowserSession session,
         AutoTemplateSearchSyncHandler search, int row, int column, IntSyncValue tier, IntSyncValue machineTier,
-        BooleanSyncValue tierEnabled, BooleanSyncValue modeAllowsPatterns) {
+        BooleanSyncValue tierEnabled, BooleanSyncValue modeAllowsPatterns, BooleanSyncValue configurationLocked) {
         int cellId = row * PATTERNS_PER_ROW + column;
         GenericSyncValue<ItemStack, ?> output = GenericSyncValue.builder(ItemStack.class)
             .getter(() -> session.cellOutput(row, column))
@@ -386,7 +411,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
 
             @Override
             public boolean onMousePressed(int button) {
-                if (button != 0) return false;
+                if (button != 0 || configurationLocked.getBoolValue()) return false;
                 search.requestPatternToggle(catalogIndex.getIntValue());
                 return true;
             }
@@ -412,7 +437,8 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
                         enabled.getBoolValue(),
                         tierEnabled.getBoolValue(),
                         modeAllowsPatterns.getBoolValue(),
-                        tier.getIntValue() >= 0 && tier.getIntValue() <= machineTier.getIntValue())))
+                        tier.getIntValue() >= 0 && tier.getIntValue() <= machineTier.getIntValue(),
+                        configurationLocked.getBoolValue())))
             .setEnabledIf(widget -> output.getValue() != null && !search.isPending());
     }
 
@@ -454,18 +480,71 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         };
     }
 
-    private static ButtonWidget<?> createSetAllButton(BrowserSession session, boolean enabled,
-        IntSyncValue totalCount) {
-        InteractionSyncHandler setAll = new InteractionSyncHandler().setOnMousePressed(
-            mouseDelta -> { if (!mouseDelta.isClient() && mouseDelta.mouseButton == 0) session.setAll(enabled); });
-        IKey label = IKey
-            .lang(enabled ? "tenkeitech.gui.auto_template.enable_all" : "tenkeitech.gui.auto_template.disable_all");
-        if (!enabled) label = label.style(IKey.RED);
+    private static ButtonWidget<?> createSetAllButton(BrowserSession session, boolean enabled, IntSyncValue totalCount,
+        BooleanSyncValue configurationLocked) {
+        InteractionSyncHandler setAll = new InteractionSyncHandler().setOnMousePressed(mouseDelta -> {
+            if (!mouseDelta.isClient() && mouseDelta.mouseButton == 0 && !configurationLocked.getBoolValue()) {
+                session.setAll(enabled);
+            }
+        });
+        IKey label = IKey.dynamic(
+            () -> (configurationLocked.getBoolValue() ? EnumChatFormatting.GRAY
+                : enabled ? EnumChatFormatting.RESET : EnumChatFormatting.RED)
+                + StatCollector.translateToLocal(
+                    enabled ? "tenkeitech.gui.auto_template.enable_all" : "tenkeitech.gui.auto_template.disable_all"));
         return new ButtonWidget<>().syncHandler(setAll)
             .overlay(label)
-            .addTooltipLine(StatCollector.translateToLocal("tenkeitech.gui.auto_template.refund_tooltip"))
-            .addTooltipLine(StatCollector.translateToLocal("tenkeitech.gui.auto_template.search_all_tooltip"))
+            .addTooltipLine(
+                IKey.dynamic(
+                    () -> configurationLocked.getBoolValue() ? previewOnlyText()
+                        : StatCollector.translateToLocal("tenkeitech.gui.auto_template.refund_tooltip")))
             .setEnabledIf(widget -> totalCount.getIntValue() > 0);
+    }
+
+    private static ButtonWidget<?> createConfigurationLockButton(BrowserSession session,
+        BooleanSyncValue configurationLocked) {
+        InteractionSyncHandler toggleLock = new InteractionSyncHandler().setOnMousePressed(
+            mouseDelta -> {
+                if (!mouseDelta.isClient() && mouseDelta.mouseButton == 0) session.toggleConfigurationLock();
+            });
+        IDrawable locked = configurationLockIcon(true);
+        IDrawable unlocked = configurationLockIcon(false);
+        return new ButtonWidget<>().syncHandler(toggleLock)
+            .overlay(new DynamicDrawable(() -> configurationLocked.getBoolValue() ? locked : unlocked))
+            .addTooltipLine(
+                IKey.dynamic(
+                    () -> StatCollector.translateToLocal(
+                        configurationLocked.getBoolValue() ? "tenkeitech.gui.auto_template.unlock_recipes"
+                            : "tenkeitech.gui.auto_template.lock_recipes")));
+    }
+
+    private static IDrawable configurationLockIcon(boolean locked) {
+        Rectangle color = new Rectangle().color(locked ? 0xFFDE4B48 : 0xFF42B85B)
+            .solid();
+        Rectangle outline = new Rectangle().color(0xFF282828)
+            .solid();
+        int[][] shackle = locked ? new int[][] { { 6, 3, 6, 2 }, { 5, 4, 2, 5 }, { 11, 4, 2, 5 } }
+            : new int[][] { { 8, 1, 5, 2 }, { 7, 2, 2, 3 }, { 12, 2, 2, 7 } };
+        return (context, x, y, width, height, theme) -> {
+            for (int[] segment : shackle) {
+                color.draw(
+                    context,
+                    x + segment[0] * width / 18,
+                    y + segment[1] * height / 18,
+                    segment[2] * width / 18,
+                    segment[3] * height / 18,
+                    theme);
+            }
+            outline.draw(context, x + 3 * width / 18, y + 7 * height / 18, 12 * width / 18, 9 * height / 18, theme);
+            color.draw(context, x + 4 * width / 18, y + 8 * height / 18, 10 * width / 18, 7 * height / 18, theme);
+            outline.draw(context, x + 7 * width / 18, y + 10 * height / 18, 4 * width / 18, 3 * height / 18, theme);
+            outline.draw(context, x + 8 * width / 18, y + 12 * height / 18, 2 * width / 18, 2 * height / 18, theme);
+        };
+    }
+
+    private static String previewOnlyText() {
+        return EnumChatFormatting.RED + StatCollector.translateToLocal("tenkeitech.gui.auto_template.preview_only")
+            + EnumChatFormatting.RESET;
     }
 
     private static ButtonWidget<?> createRefundButton(BrowserSession session) {
@@ -512,7 +591,8 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
     }
 
     private static String formatTooltip(ItemStack output, ItemStack itemInput, FluidStack fluidInput, int tier,
-        long recipeEUt, boolean enabled, boolean tierEnabled, boolean modeAllowsPatterns, boolean available) {
+        long recipeEUt, boolean enabled, boolean tierEnabled, boolean modeAllowsPatterns, boolean available,
+        boolean configurationLocked) {
         if (output == null) return "";
         String input;
         if (itemInput != null) {
@@ -534,6 +614,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
                 tierName(tier),
                 recipeEUt)
             .replace("\\n", "\n");
+        if (configurationLocked) tooltip += '\n' + previewOnlyText();
         return tooltip + '\n' + formatStatus(enabled, tierEnabled, modeAllowsPatterns, available);
     }
 
@@ -832,7 +913,8 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         }
 
         private void togglePattern(int index) {
-            if (client || index < 0
+            if (client || machine.isPatternConfigurationLocked()
+                || index < 0
                 || index >= catalogCells.size()
                 || (searchFilter != null && !searchFilter.get(index))) return;
             DisplayCell cell = catalogCells.get(index);
@@ -843,7 +925,7 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         }
 
         private void toggleTier(int tier) {
-            if (client) return;
+            if (client || machine.isPatternConfigurationLocked()) return;
             boolean present = false;
             for (DisplayRow row : rows) {
                 if (row.tier == tier) {
@@ -859,8 +941,12 @@ public final class MTEAutoTemplateInputGui extends MTEHatchBaseGui<MTEHatchAutoT
         }
 
         private void setAll(boolean enabled) {
-            if (client) return;
+            if (client || machine.isPatternConfigurationLocked()) return;
             if (!machine.setAllPatternsEnabled(templateType, enabled)) notifyToggleFailure(player);
+        }
+
+        private void toggleConfigurationLock() {
+            if (!client) machine.setPatternConfigurationLocked(!machine.isPatternConfigurationLocked());
         }
 
         private void selectCircuitMode(TemplateType mode) {

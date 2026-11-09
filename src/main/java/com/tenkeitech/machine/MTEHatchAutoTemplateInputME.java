@@ -116,6 +116,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
     private static final String NBT_ITEMS = "sharedItems";
     private static final String NBT_FLUIDS = "sharedFluids";
     private static final String NBT_DISABLED_TIER_MASK = "disabledTierMask";
+    private static final String NBT_PATTERN_CONFIGURATION_LOCKED = "patternConfigurationLocked";
     private static final String NBT_CIRCUIT_SLOTS = "circuitSlots";
     private static final String NBT_CIRCUIT_SLOT_TYPE = "TemplateType";
     private static final String NBT_CIRCUIT_SLOT_ITEMS = "Items";
@@ -139,6 +140,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
     private boolean configTransactionActive;
     private boolean needPatternSync = true;
     private boolean enabledPatternsInitialized;
+    private boolean patternConfigurationLocked;
     private int disabledTierMask;
     private boolean justHadNewItems;
     private int lastMachineTier = Integer.MIN_VALUE;
@@ -225,6 +227,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
         tag.setInteger(NBT_SCHEMA, NBT_SCHEMA_VERSION);
         tag.setInteger(NBT_TEMPLATE_TYPE, templateType.getStableId());
         tag.setBoolean(NBT_ENABLED_INITIALIZED, enabledPatternsInitialized);
+        tag.setBoolean(NBT_PATTERN_CONFIGURATION_LOCKED, patternConfigurationLocked);
         NBTTagList enabled = new NBTTagList();
         for (PatternKey key : enabledPatterns) enabled.appendTag(key.writeToNBT());
         tag.setTag(NBT_ENABLED_PATTERNS, enabled);
@@ -293,6 +296,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
         tag.setTag(NBT_ENABLED_PATTERNS, enabled);
         tag.setBoolean(NBT_ENABLED_INITIALIZED, enabledPatternsInitialized);
         tag.setInteger(NBT_DISABLED_TIER_MASK, disabledTierMask);
+        tag.setBoolean(NBT_PATTERN_CONFIGURATION_LOCKED, patternConfigurationLocked);
         itemPool.writeToNBT(tag, NBT_ITEMS);
         fluidPool.writeToNBT(tag, NBT_FLUIDS);
         tag.setTag(NBT_CIRCUIT_SLOTS, writeCircuitSlots(true));
@@ -325,6 +329,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
         enabledPatterns.clear();
         disabledTierMask = tag.getInteger(NBT_DISABLED_TIER_MASK);
         enabledPatternsInitialized = tag.getBoolean(NBT_ENABLED_INITIALIZED);
+        patternConfigurationLocked = tag.getBoolean(NBT_PATTERN_CONFIGURATION_LOCKED);
         NBTTagList enabled = tag.getTagList(NBT_ENABLED_PATTERNS, Constants.NBT.TAG_COMPOUND);
         for (int index = 0; index < enabled.tagCount(); index++) {
             PatternKey key = PatternKey.readFromNBT(enabled.getCompoundTagAt(index));
@@ -804,9 +809,21 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
         needPatternSync = true;
     }
 
+    public boolean isPatternConfigurationLocked() {
+        return patternConfigurationLocked;
+    }
+
+    /** Locks recipe editing for every page without changing published patterns or buffered materials. */
+    public void setPatternConfigurationLocked(boolean locked) {
+        if (getBaseMetaTileEntity() == null || !getBaseMetaTileEntity().isServerSide()
+            || patternConfigurationLocked == locked) return;
+        patternConfigurationLocked = locked;
+        markDirty();
+    }
+
     /** Applies one user toggle transaction. All buffered materials are refunded before state changes. */
     public boolean setPatternEnabled(PatternKey key, boolean enabled) {
-        if (key == null || findPattern(key) == null) return false;
+        if (patternConfigurationLocked || key == null || findPattern(key) == null) return false;
         boolean old = enabledPatterns.contains(key);
         if (old == enabled) return true;
         configTransactionActive = true;
@@ -826,7 +843,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
 
     /** Applies a whole voltage-tier toggle without changing any per-pattern preference. */
     public boolean setTierEnabled(TemplateType type, int tier, boolean enabled) {
-        if (tier < 0 || tier >= Integer.SIZE || !isPatternTypeAllowed(type)) return false;
+        if (patternConfigurationLocked || tier < 0 || tier >= Integer.SIZE || !isPatternTypeAllowed(type)) return false;
         boolean present = false;
         for (VirtualPattern pattern : getAvailablePatterns(type)) {
             if (pattern.getRecipeTier() == tier) {
@@ -854,7 +871,7 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
 
     /** Applies one setting to every pattern and clears whole-tier overrides. */
     public boolean setAllPatternsEnabled(TemplateType type, boolean enabled) {
-        if (!isPatternTypeAllowed(type)) return false;
+        if (patternConfigurationLocked || !isPatternTypeAllowed(type)) return false;
         Set<PatternKey> available = availablePatternKeys(type);
         if (available.isEmpty()) return false;
         Set<PatternKey> nextEnabled = enabled ? available : Collections.emptySet();
