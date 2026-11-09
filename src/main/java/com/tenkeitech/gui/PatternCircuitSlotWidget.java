@@ -44,18 +44,11 @@ public final class PatternCircuitSlotWidget extends PhantomItemSlot {
             SELECTOR_SYNC + patternSlot,
             true,
             (manager, handler) -> buildSelectorPanel(machine, patternSlot));
-        addTooltipLine(
-            IKey.lang("GT5U.machines.select_circuit.tooltip")
-                .get());
-        addTooltipLine(
-            IKey.lang("GT5U.machines.select_circuit.tooltip.1")
-                .get());
-        addTooltipLine(
-            IKey.lang("GT5U.machines.select_circuit.tooltip.2")
-                .get());
-        addTooltipLine(
-            IKey.lang("GT5U.machines.select_circuit.tooltip.3")
-                .get());
+        // Keep translations lazy: synced panels are also constructed on the dedicated server.
+        addTooltipLine(IKey.lang("GT5U.machines.select_circuit.tooltip"));
+        addTooltipLine(IKey.lang("GT5U.machines.select_circuit.tooltip.1"));
+        addTooltipLine(IKey.lang("GT5U.machines.select_circuit.tooltip.2"));
+        addTooltipLine(IKey.lang("GT5U.machines.select_circuit.tooltip.3"));
     }
 
     @Override
