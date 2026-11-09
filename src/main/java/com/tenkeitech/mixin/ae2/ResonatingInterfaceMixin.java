@@ -1,16 +1,16 @@
 /*
  * SPDX-FileCopyrightText: 2026 TenkeiTech
+ * SPDX-FileCopyrightText: Applied Energistics 2 contributors
  * SPDX-License-Identifier: LGPL-3.0-only
  */
 package com.tenkeitech.mixin.ae2;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.util.ForgeDirection;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,14 +31,18 @@ import com.tenkeitech.resonating.ResonatingInterfaceHosts;
 import com.tenkeitech.resonating.ResonatingPatternData;
 
 import appeng.api.config.LockCraftingMode;
+import appeng.api.config.Settings;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingMedium;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
 import appeng.api.networking.security.BaseActionSource;
 import appeng.api.networking.ticking.TickRateModulation;
+import appeng.api.storage.data.IAEStack;
+import appeng.api.util.IConfigManager;
 import appeng.helpers.DualityInterface;
 import appeng.helpers.IInterfaceHost;
+import appeng.helpers.UnlockCraftingEvent;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.util.ScheduledReason;
@@ -63,6 +67,10 @@ public abstract class ResonatingInterfaceMixin implements ResonatingHost {
     private ScheduledReason scheduledReason;
     @Shadow
     private int lastInputHash;
+    @Shadow
+    private UnlockCraftingEvent unlockEvent;
+    @Shadow
+    private List<IAEStack<?>> unlockStacks;
 
     @Shadow
     protected abstract boolean hasItemsToSend();
@@ -84,7 +92,13 @@ public abstract class ResonatingInterfaceMixin implements ResonatingHost {
     public abstract void saveChanges();
 
     @Shadow
-    private void onPushPatternSuccess(TileEntity tile, ForgeDirection side, ICraftingPatternDetails details) {
+    public abstract void resetCraftingLock();
+
+    @Shadow
+    public abstract IConfigManager getConfigManager();
+
+    @Shadow
+    private void addInterception() {
         throw new AssertionError();
     }
 
@@ -166,15 +180,43 @@ public abstract class ResonatingInterfaceMixin implements ResonatingHost {
             // No external inventory has been mutated yet. All input now belongs to the persistent dispatch.
             try {
                 saveChanges();
-                onPushPatternSuccess(null, ForgeDirection.UNKNOWN, details);
+                tenkeitech$acceptedPatternState(details, extraction);
+            } catch (RuntimeException exception) {
+                TenkeiTech.LOG
+                    .error("Resonating dispatch accepted; retained input despite state update failure", exception);
+            }
+            try {
                 gridProxy.getTick()
                     .alertDevice(gridProxy.getNode());
             } catch (RuntimeException | GridAccessException exception) {
                 TenkeiTech.LOG
-                    .error("Resonating dispatch accepted; retained input despite notification failure", exception);
+                    .error("Resonating dispatch accepted; retained input despite scheduler wakeup failure", exception);
             }
         } else scheduledReason = ScheduledReason.SOMETHING_STUCK;
         cir.setReturnValue(accepted);
+    }
+
+    @Unique
+    private void tenkeitech$acceptedPatternState(ICraftingPatternDetails details, AutoExtractionState extraction) {
+        // Match AE2's interface-owned success state. Remote acceptance has no single local recipient to notify.
+        if (isSmartBlocking()) lastInputHash = details.hashCode();
+        resetCraftingLock();
+        // The card's push wrapper commits its own output promise exactly once after this method returns.
+        if (extraction.present() || extraction.busy()) return;
+        LockCraftingMode mode = (LockCraftingMode) getConfigManager().getSetting(Settings.LOCK_CRAFTING_MODE);
+        switch (mode) {
+            case LOCK_UNTIL_PULSE -> {
+                unlockEvent = UnlockCraftingEvent.PULSE;
+                saveChanges();
+            }
+            case LOCK_UNTIL_RESULT -> {
+                unlockEvent = UnlockCraftingEvent.RESULT;
+                if (unlockStacks == null) unlockStacks = new ArrayList<>();
+                for (IAEStack<?> output : details.getCondensedAEOutputs()) unlockStacks.add(output.copy());
+                addInterception();
+                saveChanges();
+            }
+        }
     }
 
     @Inject(method = "isBusy", at = @At("HEAD"), cancellable = true, require = 1)
