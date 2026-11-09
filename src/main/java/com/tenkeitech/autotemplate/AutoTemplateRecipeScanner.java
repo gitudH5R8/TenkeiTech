@@ -34,6 +34,8 @@ public final class AutoTemplateRecipeScanner {
 
     private static final int GUARANTEED_OUTPUT_CHANCE = 10_000;
     private static final int PRIORITIES_PER_TEMPLATE = 1 << 16;
+    // Exact registry names of fluids unavailable through normal gameplay. Solidifier catalogs only.
+    private static final Set<String> SOLIDIFIER_FLUID_BLACKLIST = Collections.singleton("molten.tengamattuned");
 
     private AutoTemplateRecipeScanner() {}
 
@@ -172,6 +174,11 @@ public final class AutoTemplateRecipeScanner {
             if (!consumed.isEmpty()) return reject("CONSUMED_ITEM_NOT_SUPPORTED", recipe);
             if (fluids.size() != 1) return reject("FLUID_INPUT_COUNT", recipe);
             if (fluids.get(0).amount <= 0) return reject("INVALID_FLUID_AMOUNT", recipe);
+            if (SOLIDIFIER_FLUID_BLACKLIST.contains(
+                fluids.get(0)
+                    .getFluid()
+                    .getName()))
+                return reject("BLACKLISTED_FLUID", recipe);
 
             List<ItemStack> outputs = presentItems(recipe.mOutputs);
             if (hasInvalidItemAmount(recipe.mOutputs) || outputs.size() != 1) {
