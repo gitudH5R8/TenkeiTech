@@ -12,6 +12,8 @@ val licenseFiles = copySpec {
 
 tasks.withType<Jar>().configureEach {
     with(licenseFiles)
+    // Mod targets are registered separately by the GTNH late loader after mod discovery.
+    manifest.attributes("MixinConfigs" to "mixins.tenkeitech.json")
 }
 
 tasks.named("compileJava") {

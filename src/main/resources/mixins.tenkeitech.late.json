@@ -1,0 +1,50 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "com.tenkeitech.mixin",
+  "refmap": "mixins.tenkeitech.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "ae2.BlockingFilterInterfaceMixin",
+    "ae2.BlockingFilterUpgradeMixin",
+    "ae2.BlockingFilterSlotMixin",
+    "ae2.AutoExtractionInterfaceMixin",
+    "ae2.AutoExtractionFluidInterfaceMixin",
+    "ae2.AutoExtractionUpgradeMixin",
+    "ae2.AutoExtractionContainerMixin",
+    "ae2.ResonatingInterfaceMixin",
+    "ae2.ResonatingScheduledReasonMixin",
+    "ae2.ResonatingPatternTerminalMixin",
+    "gt5u.ResonatingPatternSafetyMixin",
+    "gt5u.UniversalWandBasicAccelerationEnergyMixin",
+    "gt5u.UniversalWandMultiAccelerationEnergyMixin",
+    "gt5u.UniversalWandResearchAccelerationMixin",
+    "gt5u.UniversalWandAssemblyAccelerationMixin",
+    "ae2.ContainerPatternModeMixin",
+    "ae2.PatternEncodingModeMixin",
+    "gt5u.LongFluidProcessingLogicMixin",
+    "gt5u.ParallelHelperConsumptionMixin",
+    "gt5u.PatternModeControllerMixin",
+    "ae2.CraftingCPUClusterMixin",
+    "ae2.CraftingTaskProgressAccessor",
+    "ae2.GridNodeWirelessChannelMixin",
+    "gt5u.EyeOfHarmonyMixin",
+    "gt5u.MTETieredMachineBlockBaseGuiMixin",
+    "wildcardpattern.WildcardPatternGeneratorInvoker",
+    "wildcardpattern.WildcardPatternCircuitMixin",
+    "wildcardpattern.WildcardPatternItemMixin"
+  ],
+  "client": [
+    "ae2.InterfaceUpgradeTooltipMixin",
+    "ae2.AutoExtractionGuiMixin",
+    "gt5u.BlockOverlayRendererInvoker",
+    "gt5u.UniversalWandPipeSelectionMixin",
+    "ae2.InterfaceTerminalNameInvoker",
+    "ae2.GuiPatternTermMixin",
+    "ae2.GuiPatternTermExMixin"
+  ],
+  "server": []
+}
