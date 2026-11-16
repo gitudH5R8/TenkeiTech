@@ -30,6 +30,8 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.tenkeitech.client.ClientTextSearch;
+
 import appeng.api.storage.data.IAEFluidStack;
 import appeng.api.storage.data.IAEStack;
 import cpw.mods.fml.common.Loader;
@@ -264,8 +266,8 @@ public final class GuiBetterLevelMaintainer extends GuiContainer {
             .toLowerCase(Locale.ROOT);
         for (int i = 0; i < slots; i++) {
             NBTTagCompound entry = entries[i];
-            if (query.isEmpty() || entry != null && name(displayMaterials[i]).toLowerCase(Locale.ROOT)
-                .contains(query)) result.add(i);
+            if (query.isEmpty() || entry != null
+                && ClientTextSearch.contains(name(displayMaterials[i]).toLowerCase(Locale.ROOT), query)) result.add(i);
         }
         return result;
     }
@@ -625,7 +627,8 @@ public final class GuiBetterLevelMaintainer extends GuiContainer {
         if (catalogFilterDirty || !query.equals(catalogFilter)) {
             filteredCatalog.clear();
             for (int i = 0; i < catalog.length; i++)
-                if (catalog[i] != null && catalogSearchNames[i].contains(query)) filteredCatalog.add(i);
+                if (catalog[i] != null && ClientTextSearch.contains(catalogSearchNames[i], query))
+                    filteredCatalog.add(i);
             filteredCatalog.sort(Comparator.comparing(index -> catalogNames[index], String.CASE_INSENSITIVE_ORDER));
             catalogFilter = query;
             catalogFilterDirty = false;

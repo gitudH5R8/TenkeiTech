@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -56,10 +57,15 @@ final class PatternUploadRouting {
 
     static <T> List<T> filter(List<T> candidates, Function<T, String> name, String query,
         Predicate<T> additionalMatch) {
+        return filter(candidates, name, query, additionalMatch, String::contains);
+    }
+
+    static <T> List<T> filter(List<T> candidates, Function<T, String> name, String query, Predicate<T> additionalMatch,
+        BiPredicate<String, String> textMatch) {
         String needle = normalize(query);
         List<T> result = new ArrayList<>();
         for (T candidate : candidates) {
-            if (additionalMatch.test(candidate) || normalize(name.apply(candidate)).contains(needle))
+            if (additionalMatch.test(candidate) || textMatch.test(normalize(name.apply(candidate)), needle))
                 result.add(candidate);
         }
         return result;

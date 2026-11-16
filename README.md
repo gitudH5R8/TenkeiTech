@@ -303,6 +303,7 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 | 可选联动 | 提供的功能 |
 | --- | --- |
 | NotEnoughEnergistics（NEE） | 配方转移、样板类别识别与无用之杖的样板辅助设置 |
+| NotEnoughCharacters | 模板总线、样板上传／映射及请求器搜索支持全拼、首字母与混合输入 |
 | Wildcard Pattern | 超级样板总成的通配样板支持 |
 | Backhand | 无用之杖的副手建材选择及副手远距放置兼容 |
 | Crops NH | 无用之杖自动收获作物架 |
@@ -597,6 +598,7 @@ Multiplayer clients and servers need matching versions and dependencies. NEI sho
 | Optional integration | Feature |
 | --- | --- |
 | NotEnoughEnergistics | Recipe transfer, pattern categories and wand pattern helpers |
+| NotEnoughCharacters | Pinyin, initials and mixed-input search in template buses, pattern upload/mappings and requesters |
 | Wildcard Pattern | Wildcard patterns in the Super Pattern Buffer |
 | Backhand | Offhand building materials and extended-reach offhand placement |
 | Crops NH | Automatic crop-stick harvesting |

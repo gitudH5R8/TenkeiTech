@@ -64,4 +64,7 @@ dependencies {
 
     // Compile optional Mixin targets and mappings without loading WarpTheory or its prerequisites in dev runs.
     compileOnly("com.github.GTNewHorizons:WarpTheory:1.5.8-GTNH:dev") { transitive = false }
+
+    // Optional client-side pinyin search; use the public matcher without loading NEC in default dev runs.
+    compileOnly("com.github.GTNewHorizons:NotEnoughCharacters:1.7.10-1.5.5-GTNH:dev") { transitive = false }
 }

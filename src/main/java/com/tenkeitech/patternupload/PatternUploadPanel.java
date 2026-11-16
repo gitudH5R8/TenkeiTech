@@ -21,6 +21,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.tenkeitech.TenkeiTech;
+import com.tenkeitech.client.ClientTextSearch;
 import com.tenkeitech.patternupload.PatternUploadLayout.Box;
 
 import appeng.api.parts.IPatternTerminal;
@@ -303,7 +304,8 @@ public final class PatternUploadPanel extends Gui {
                     + " "
                     + recipeCategories.getOrDefault(entry.groupIndex, ""),
                 query,
-                this::matchesRecipeType));
+                this::matchesRecipeType,
+                ClientTextSearch::contains));
     }
 
     private boolean matchesRecipeType(PatternUploadNetwork.TargetEntry entry) {
@@ -706,7 +708,7 @@ public final class PatternUploadPanel extends Gui {
                     PatternUploadPreferences.Mapping entry = preferences.mappings()
                         .get(index);
                     return entry.category + " " + entry.label + " " + entry.provider;
-                }, search.getText());
+                }, search.getText(), index -> false, ClientTextSearch::contains);
                 mappingIndices.clear();
                 mappingIndices.addAll(filtered);
             }

@@ -18,6 +18,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.cleanroommc.modularui.value.sync.SyncHandler;
+import com.tenkeitech.client.ClientTextSearch;
 
 /** Localized search for one GUI session; the server owns the catalog and all mutations. */
 final class AutoTemplateSearchSyncHandler extends SyncHandler<AutoTemplateSearchSyncHandler> {
@@ -178,8 +179,7 @@ final class AutoTemplateSearchSyncHandler extends SyncHandler<AutoTemplateSearch
             for (int index = 0; index < names.size(); index++) {
                 boolean match = true;
                 for (String term : terms) {
-                    if (!names.get(index)
-                        .contains(term)) {
+                    if (!ClientTextSearch.contains(names.get(index), term)) {
                         match = false;
                         break;
                     }
