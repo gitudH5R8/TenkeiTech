@@ -29,6 +29,15 @@ public final class TenkeiTechLateMixins implements ILateMixinLoader {
     @Override
     public List<String> getMixins(Set<String> loadedMods) {
         List<String> mixins = new ArrayList<>();
+        if (loadedMods.contains("sciencenotleisure") && QuantumCompat.supportsGTNL())
+            Collections.addAll(mixins, "gtnl.QuantumComputerMixin", "gtnl.QuantumCraftingCPUMixin");
+        if (loadedMods.contains("neoecoae") && QuantumCompat.supportsECO()) Collections.addAll(
+            mixins,
+            "eco.ECONativeCpuMixin",
+            "eco.ECOCraftingCPUMixin",
+            "eco.ECODispatchAccountingMixin",
+            "eco.ECONativeProviderMixin",
+            "eco.ECOVanillaExecutorMixin");
         addIfLoaded(
             mixins,
             loadedMods,

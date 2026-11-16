@@ -28,7 +28,13 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.tenkeitech.ae.TransformedPatternRecovery;
+import com.tenkeitech.integration.quantum.QuantumCatalystRequests;
+import com.tenkeitech.integration.quantum.QuantumCpu;
+import com.tenkeitech.integration.quantum.QuantumCpuSource;
+import com.tenkeitech.integration.quantum.QuantumOrderContext;
 import com.tenkeitech.item.ItemPatternCatalystMarker;
 import com.tenkeitech.item.ItemUniversalWand;
 import com.tenkeitech.machine.MTEHatchAutoTemplateInputME;
@@ -58,12 +64,36 @@ import gregtech.GTLoggers;
 import gregtech.api.util.GTUtility;
 
 /**
- * Batches TenkeiTech processing-pattern dispatches and folds super-buffer automatic catalyst work into the CPU that
- * owns the original order. Fixed catalysts never enter ordinary pattern arithmetic: a missing catalyst is pulled into
- * the CPU directly when available, otherwise a one-item crafting branch is planned and attached transactionally.
+ * Batches TenkeiTech processing-pattern dispatches. Ordinary AE CPUs attach automatic catalyst branches to their
+ * own order; quantum CPUs use native independent orders in the same physical pool. Fixed catalysts never enter
+ * ordinary pattern arithmetic.
  */
 @Mixin(value = CraftingCPUCluster.class, remap = false)
-public abstract class CraftingCPUClusterMixin {
+public abstract class CraftingCPUClusterMixin implements QuantumCpuSource {
+
+    @Unique
+    private final QuantumOrderContext tenkeitech$quantumOrder = new QuantumOrderContext();
+
+    @Override
+    public QuantumOrderContext tenkeitech$quantumOrder() {
+        return tenkeitech$quantumOrder;
+    }
+
+    @Inject(method = "submitJob", at = @At("RETURN"))
+    private void tenkeitech$tagQuantumOrder(
+        CallbackInfoReturnable<appeng.api.networking.crafting.ICraftingLink> callback) {
+        if (callback.getReturnValue() != null) tenkeitech$quantumOrder.submitted((CraftingCPUCluster) (Object) this);
+    }
+
+    @WrapOperation(
+        method = "executeCrafting",
+        at = @At(
+            value = "INVOKE",
+            target = "Lappeng/me/cluster/implementations/CraftingCPUCluster$finalOutput;isFinalPattern(Lappeng/api/networking/crafting/ICraftingPatternDetails;)Z"))
+    private boolean tenkeitech$physicalQuantumCatalyst(CraftingCPUCluster.finalOutput tracker,
+        ICraftingPatternDetails details, Operation<Boolean> original) {
+        return !QuantumCatalystRequests.isChild((CraftingCPUCluster) (Object) this) && original.call(tracker, details);
+    }
 
     private static final long AUTOMATIC_CATALYST_RETRY_TICKS = 200;
     private static final String NBT_AUTOMATIC_CATALYSTS = "tenkeitechAutomaticCatalysts";
@@ -145,11 +175,13 @@ public abstract class CraftingCPUClusterMixin {
     @Inject(method = "writeToNBT", at = @At("RETURN"))
     private void tenkeitech$saveTransformedTasks(NBTTagCompound tag, CallbackInfo callback) {
         tenkeitech$patternRecovery.write(tasks, tag);
+        tenkeitech$quantumOrder.write(tag);
     }
 
     @Inject(method = "readFromNBT", at = @At("RETURN"))
     private void tenkeitech$restoreTransformedTasks(NBTTagCompound tag, CallbackInfo callback) {
         tenkeitech$patternRecovery.read(tasks, tag);
+        tenkeitech$quantumOrder.read(tag);
     }
 
     @Unique
@@ -299,7 +331,7 @@ public abstract class CraftingCPUClusterMixin {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "executeCrafting",
         at = @At(
             value = "INVOKE",
@@ -308,36 +340,37 @@ public abstract class CraftingCPUClusterMixin {
         remap = false,
         require = 1)
     private boolean tenkeitech$pushPatternBatch(ICraftingMedium medium, ICraftingPatternDetails details,
-        InventoryCrafting craftingTable, IEnergyGrid energyGrid, CraftingGridCache craftingGridCache) {
+        InventoryCrafting craftingTable, Operation<Boolean> original, IEnergyGrid energyGrid,
+        CraftingGridCache craftingGridCache) {
         tenkeitech$clearBatch();
         MTESuperCraftingInputME superPatternBuffer = medium instanceof MTESuperCraftingInputME superBuffer ? superBuffer
             : null;
         if ((superPatternBuffer == null && !(medium instanceof MTEHatchAutoTemplateInputME)) || details.isCraftable()
             || !(craftingTable instanceof MEInventoryCrafting meCraftingTable)) {
-            return medium.pushPattern(details, craftingTable);
+            return original.call(medium, details, craftingTable);
         }
-        if (superPatternBuffer != null
+        if (superPatternBuffer != null && !((Object) this instanceof QuantumCpu)
             && !tenkeitech$ensureAutomaticCatalystsAvailable(superPatternBuffer, details, craftingGridCache))
             return false;
         if (isCraftingDiagnosticsEnabled()) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         CraftingCPUCluster.TaskProgress taskProgress = workableTasks.get(details);
         if (taskProgress == null) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         CraftingTaskProgressAccessor progressAccessor = (CraftingTaskProgressAccessor) (Object) taskProgress;
         long factor = progressAccessor.tenkeitech$getValue();
         if (factor <= 1) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         IAEStack<?>[] originalInputs = tenkeitech$copyInputs(meCraftingTable);
         List<BatchInput> aggregateInputs = tenkeitech$aggregateInputs(originalInputs);
         if (aggregateInputs == null || aggregateInputs.isEmpty()) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         factor = tenkeitech$capForLongStackSizes(
@@ -349,18 +382,18 @@ public abstract class CraftingCPUClusterMixin {
         double powerPerCraft = tenkeitech$calculatePatternPower(originalInputs);
         factor = tenkeitech$capForAvailablePower(factor, powerPerCraft, energyGrid);
         if (factor <= 1) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         List<IAEStack<?>> extractedInputs = tenkeitech$extractAdditionalInputs(aggregateInputs, factor - 1);
         if (extractedInputs == null) {
-            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            return tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         }
 
         tenkeitech$scaleCraftingTable(meCraftingTable, originalInputs, factor);
         final boolean accepted;
         try {
-            accepted = tenkeitech$pushSupportedPattern(medium, details, meCraftingTable);
+            accepted = tenkeitech$pushSupportedPattern(medium, details, meCraftingTable, original);
         } catch (RuntimeException exception) {
             tenkeitech$restoreAfterRejectedPush(meCraftingTable, originalInputs, extractedInputs);
             throw exception;
@@ -383,11 +416,13 @@ public abstract class CraftingCPUClusterMixin {
 
     @Unique
     private boolean tenkeitech$pushSupportedPattern(ICraftingMedium medium, ICraftingPatternDetails details,
-        MEInventoryCrafting craftingTable) {
+        MEInventoryCrafting craftingTable, Operation<Boolean> original) {
         if (medium instanceof MTESuperCraftingInputME superPatternBuffer) {
-            return tenkeitech$pushWithAutomaticCatalysts(superPatternBuffer, details, craftingTable);
+            if ((Object) this instanceof QuantumCpu) return superPatternBuffer.getQuantumCatalysts()
+                .push((CraftingCPUCluster) (Object) this, details, craftingTable, original);
+            return tenkeitech$pushWithAutomaticCatalysts(superPatternBuffer, details, craftingTable, original);
         }
-        return medium.pushPattern(details, craftingTable);
+        return original.call(medium, details, craftingTable);
     }
 
     @Redirect(
@@ -431,9 +466,9 @@ public abstract class CraftingCPUClusterMixin {
 
     @Unique
     private boolean tenkeitech$pushWithAutomaticCatalysts(MTESuperCraftingInputME medium,
-        ICraftingPatternDetails details, MEInventoryCrafting craftingTable) {
+        ICraftingPatternDetails details, MEInventoryCrafting craftingTable, Operation<Boolean> original) {
         List<ItemStack> missing = medium.getMissingAutomaticItemCatalysts(details);
-        if (missing.isEmpty()) return medium.pushPattern(details, craftingTable);
+        if (missing.isEmpty()) return original.call(medium, details, craftingTable);
 
         List<IAEStack<?>> catalysts = new ArrayList<>(missing.size());
         for (ItemStack catalyst : missing) {
@@ -464,7 +499,7 @@ public abstract class CraftingCPUClusterMixin {
 
         final boolean accepted;
         try {
-            accepted = medium.pushPattern(details, augmented);
+            accepted = original.call(medium, details, augmented);
         } catch (RuntimeException exception) {
             tenkeitech$returnToCpuInventory(catalysts);
             throw exception;

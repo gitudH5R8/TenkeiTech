@@ -76,6 +76,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotGroup;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.tenkeitech.ae.TransformedPatternDetails;
 import com.tenkeitech.gui.MTESuperCraftingInputMEGui;
+import com.tenkeitech.integration.quantum.QuantumCatalystRequests;
 import com.tenkeitech.integration.wildcardpattern.WildcardPatternCircuitData;
 import com.tenkeitech.integration.wildcardpattern.WildcardPatternItemBridge;
 import com.tenkeitech.inventory.ILongFluidInputInventory;
@@ -97,9 +98,11 @@ import appeng.api.interfaces.IInterfaceNameProvider;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.crafting.ICraftingGrid;
+import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingProviderHelper;
+import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.events.MENetworkCraftingPatternChange;
 import appeng.api.networking.security.BaseActionSource;
 import appeng.api.networking.security.IActionHost;
@@ -163,8 +166,35 @@ import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 
 @IMetaTileEntity.SkipGenerateDescription
-public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerChannelState, ICraftingProvider,
-    IGridProxyable, IDualInputHatchWithPattern, ICustomNameObject, IInterfaceViewable, IMEConnectable {
+public class MTESuperCraftingInputME extends MTEHatchInputBus
+    implements IPowerChannelState, ICraftingProvider, IGridProxyable, IDualInputHatchWithPattern, ICustomNameObject,
+    IInterfaceViewable, IMEConnectable, ICraftingRequester {
+
+    private final QuantumCatalystRequests quantumCatalysts = new QuantumCatalystRequests(this);
+
+    public QuantumCatalystRequests getQuantumCatalysts() {
+        return quantumCatalysts;
+    }
+
+    @Override
+    public com.google.common.collect.ImmutableSet<ICraftingLink> getRequestedJobs() {
+        return quantumCatalysts.links();
+    }
+
+    @Override
+    public IAEStack<?> injectCraftedItems(ICraftingLink link, IAEStack<?> items, appeng.api.config.Actionable mode) {
+        return quantumCatalysts.receive(link, items, mode);
+    }
+
+    @Override
+    public void jobStateChange(ICraftingLink link) {
+        markDirty();
+    }
+
+    @Override
+    public IGridNode getActionableNode() {
+        return getProxy().getNode();
+    }
 
     /**
      * One logical input selected for Eye of Harmony compatibility. The arrays are copies, but their non-virtual stack
@@ -1214,6 +1244,7 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
         super.onPostTick(aBaseMetaTileEntity, aTimer);
 
         if (getBaseMetaTileEntity().isServerSide()) {
+            quantumCatalysts.tick();
             boolean sharedConsumableChanged = sharedConsumableStock.observeBackingChanges();
             sharedConsumableChanged |= sharedConsumableFluidStock.observeBackingChanges();
             if (sharedConsumableChanged) markDirty();
@@ -1566,6 +1597,7 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        quantumCatalysts.write(aNBT);
 
         aNBT.setInteger(NBT_PHASE_2_SCHEMA, PHASE_2_SCHEMA);
 
@@ -1623,6 +1655,7 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
             aNBT = new NBTTagCompound();
         }
         sharedFluidCatalysts = FluidCatalystData.readFromNBT(aNBT, NBT_SHARED_FLUID_CATALYSTS);
+        quantumCatalysts.read(aNBT);
         PatternAugmentData emptyAugment = new PatternAugmentData();
         for (PatternAugmentData patternAugment : patternAugments) patternAugment.copyFrom(emptyAugment);
         boolean[] loadedAugments = new boolean[MAX_PATTERN_COUNT];
@@ -3798,6 +3831,9 @@ public class MTESuperCraftingInputME extends MTEHatchInputBus implements IPowerC
 
     @Override
     public void onBlockDestroyed() {
+        for (ItemStack item : quantumCatalysts.destroy()) {
+            if (Gregtech.machines.allowCribDropItems) dropMachineItem(item);
+        }
         refundAll(true);
         super.onBlockDestroyed();
     }
