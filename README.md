@@ -162,6 +162,18 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 复制不复制催化剂或材料。剪切前会先退回输入材料，退回失败时不会移走配置。
 
+#### 更好的机器投影仪
+
+基于多方块机器全息投影仪，提供建造、按信道替换和按投影范围拆除三种模式。物品不可堆叠，界面中的“堆叠次数”用于模拟原版堆叠数量；图标保留原版蓝色轮廓，白色高光循环变色。
+
+- 右键控制器显示投影，潜行右键执行当前模式；右键空气打开设置。
+- 替换仅处理已明确设置的等级信道；替换、拆除均保留控制器和舱室。
+- 拆除只回收对应位置的有效结构方块，信道位置接受各有效等级，保留范围内的无关方块。
+- 默认 **25 方块／轮、300 毫秒冷却**，每轮方块数最高可设为 **256**；右上角扳手可修改，并可勾选“跳过缺少方块”继续建造；默认关闭，独立于原投影仪配置。
+- 潜行右键空气配置原生存储供应器与物品提取器；兼容的 AE 来源可用于取料和回料，剩余物品退回背包或掉落。
+
+与原版多方块机器全息投影仪可通过单物品无序配方 **1:1 双向转换**，转换产出全新配置。替换和拆除要求控制器使用 GT 的标准结构投影接口。
+
 #### 无用之杖（Useless Tools）
 
 集采集、建筑、战斗和辅助功能于一体的工具。具有无限耐久、快速采集、**114514 攻击力**和主手 **+8 格触及距离**，
@@ -325,7 +337,7 @@ G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零
 同时感谢以下项目及其作者：
 
 - [**GTLAdditions**](https://github.com/Dragonators/GTLAdditions)：ME 超级样板总成的功能参考来源。
-- [**GTLCore**](https://github.com/GNSW/GTLCore)：无线 ME 网络核心与无线 ME 网络收藏器的无线 ME 网络功能参考来源。
+- [**GTLCore**](https://github.com/GNSW/GTLCore)：无线 ME 网络核心与无线 ME 网络收藏器的功能参考来源。
 - [**ExtendedAE_Plus**](https://github.com/GaLicn/ExtendedAE_Plus)：从终端上传样板的功能移植自该项目。
 - [**AE2-Crystal-Science**](https://github.com/ExtremelyFrozen/AE2-Crystal-Science)：谐振样板移植自该项目。
 - [**UselessMod**](https://github.com/SorrowMist/UselessMod)：无用之杖移植自该项目。
@@ -473,6 +485,18 @@ each fluid input allows up to 2,147,483,647 mB.
 - **Cut:** sneak-right-click to take patterns, catalysts and related settings after returning input materials; right-click an empty buffer to move them there.
   Successful pasting empties the tool.
 
+#### Better Multiblock Structure Hologram Projector
+
+Based on the Multiblock Structure Hologram Projector, with build, channel-based replacement and projection-based dismantling modes. The item does not stack; the GUI's stack count simulates the original stacked quantity. The original blue icon is preserved while its white highlights cycle through rainbow colors.
+
+- Right-click a controller to project; sneak-right-click to execute. Right-click air to open settings.
+- Replacement affects only explicitly configured tier channels. Replacement and dismantling preserve controllers and hatches.
+- Dismantling removes only valid structure blocks at their designated positions, accepting all valid channel tiers and preserving unrelated blocks.
+- Defaults to **25 blocks per round and a 300 ms cooldown**, with a maximum round budget of **256**. The wrench settings also offer **Skip missing blocks**, disabled by default, to continue building past material shortages. Settings are independent of the original projector.
+- Sneak-right-click air to configure native inventory providers and stack extractors. Compatible AE sources support extraction and returns; remainders go to your inventory or the ground.
+
+Convert **1:1 in either direction** with the original Multiblock Structure Hologram Projector using single-item shapeless recipes. Outputs have fresh settings. Replacement and dismantling require a controller using GT's standard structure projection interface.
+
 #### Useless Tools / Universal Wand
 
 An all-purpose tool with infinite durability, fast mining, **114514 attack damage**, **+8 main-hand reach**,
@@ -619,7 +643,7 @@ Thanks to GTNH, GregTech, AE2 and the related projects.
 Special thanks to the following projects and their authors:
 
 - [**GTLAdditions**](https://github.com/Dragonators/GTLAdditions): a functional reference for the ME Super Pattern Buffer.
-- [**GTLCore**](https://github.com/GNSW/GTLCore): the wireless ME network implementation inspired the Wireless ME Network Core and Wireless ME Network Bookmark.
+- [**GTLCore**](https://github.com/GNSW/GTLCore): a functional reference for the Wireless ME Network Core and Wireless ME Network Bookmark.
 - [**ExtendedAE_Plus**](https://github.com/GaLicn/ExtendedAE_Plus): terminal pattern uploads are ported from this project.
 - [**AE2-Crystal-Science**](https://github.com/ExtremelyFrozen/AE2-Crystal-Science): Resonating Patterns are ported from this project.
 - [**UselessMod**](https://github.com/SorrowMist/UselessMod): Useless Tools / Universal Wand is ported from this project.

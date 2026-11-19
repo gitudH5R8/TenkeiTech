@@ -8,6 +8,7 @@ import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.tenkeitech.item.ItemAutoTemplatePattern;
 import com.tenkeitech.item.ItemPatternBufferTransferTool;
 import com.tenkeitech.item.ItemPatternCatalystMarker;
@@ -30,6 +31,7 @@ public final class ModItems {
         false);
 
     public static final ItemUniversalWand UNIVERSAL_WAND = new ItemUniversalWand();
+    public static final com.tenkeitech.item.ItemBetterMachineProjector BETTER_MACHINE_PROJECTOR = new com.tenkeitech.item.ItemBetterMachineProjector();
     public static final Item PATTERN_BUFFER_COPY_TOOL = new ItemPatternBufferTransferTool(
         ItemPatternBufferTransferTool.Mode.COPY);
     public static final Item PATTERN_BUFFER_CUT_TOOL = new ItemPatternBufferTransferTool(
@@ -57,6 +59,7 @@ public final class ModItems {
             20,
             true);
         GameRegistry.registerItem(UNIVERSAL_WAND, "universal_wand");
+        GameRegistry.registerItem(BETTER_MACHINE_PROJECTOR, "better_machine_projector");
         GameRegistry.registerItem(PATTERN_BUFFER_COPY_TOOL, "pattern_buffer_copy_tool");
         GameRegistry.registerItem(PATTERN_BUFFER_CUT_TOOL, "pattern_buffer_cut_tool");
         GameRegistry.registerItem(AUTO_TEMPLATE_PATTERN, "auto_template_pattern");
@@ -64,6 +67,12 @@ public final class ModItems {
     }
 
     public static void registerRecipes() {
+        GameRegistry.addShapelessRecipe(
+            new ItemStack(BETTER_MACHINE_PROJECTOR),
+            new ItemStack(StructureLibAPI.getDefaultHologramItem()));
+        GameRegistry.addShapelessRecipe(
+            new ItemStack(StructureLibAPI.getDefaultHologramItem()),
+            new ItemStack(BETTER_MACHINE_PROJECTOR));
         GameRegistry.addShapelessRecipe(
             new ItemStack(BLOCKING_FILTER_CARD_PRECISE),
             appeng.api.AEApi.instance()

@@ -32,6 +32,9 @@ public class CommonProxy {
         Config.synchronizeConfiguration(event.getSuggestedConfigurationFile());
         com.tenkeitech.questskip.QuestSkipNetwork.init();
         ModItems.init();
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new com.tenkeitech.machineprojector.BetterMachineProjectorEvents());
         com.tenkeitech.maintainer.MaintainerRegistration.preInit();
         com.tenkeitech.resonating.ResonatingNetwork.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS

@@ -43,6 +43,10 @@ final class WirelessAeSneakPlaceBinder {
             return;
         }
 
+        // Ordinary structure blocks cannot become ME hatches; do not let bulk building fill the deferred queue.
+        int metadata = event.world.getBlockMetadata(event.x, event.y, event.z);
+        if (!event.placedBlock.hasTileEntity(metadata)) return;
+
         UUID playerId = event.player.getUniqueID();
         WirelessAeWorldData worldData = WirelessAeWorldData.get(event.world);
         UUID favorite = worldData.getFavorite(playerId);
@@ -62,7 +66,7 @@ final class WirelessAeSneakPlaceBinder {
                 playerId,
                 favorite,
                 event.placedBlock,
-                event.world.getBlockMetadata(event.x, event.y, event.z),
+                metadata,
                 event.world.getTotalWorldTime() + 1));
     }
 

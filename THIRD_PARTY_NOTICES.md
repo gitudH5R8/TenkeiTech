@@ -11,6 +11,7 @@ Original TenkeiTech code and assets are Copyright (c) 2026 TenkeiTech and licens
 | [Applied Energistics 2 GTNH](https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/tree/rv3-beta-1095-GTNH) (`rv3-beta-1050-GTNH`, `rv3-beta-1095-GTNH`) | Resonating interface lifecycle and interface-owned acceptance state, automatic extraction interface/upgrade/container/GUI hooks, scoped blocking-filter interface/upgrade/slot hooks, and interface upgrade tooltip hooks adapted from `DualityInterface`, `GuiUpgradeable` and related classes. | Applied Energistics 2 contributors; 2026 TenkeiTech | [LGPL-3.0-only](LICENSES/LGPL-3.0-only.txt) |
 | [ConstructionWand](https://github.com/Theta-Dev/ConstructionWand/tree/15089d96dd04c26b9110b44388a6133598d744d7) | Universal Wand building, destruction and undo adapted for Minecraft 1.7.10. | 2021 ThetaDev; 2026 TenkeiTech | [MIT](LICENSES/ConstructionWand-MIT.txt) |
 | [AE2-PowerTools](https://github.com/Aedial/AE2-PowerTools/tree/be56992b0ab8e64cf254f603dad22cca2931aa6b) | Better ME Requester logic, GUI and Waila status display. | 2026 Aedial; 2026 TenkeiTech | [MIT](LICENSES/AE2-PowerTools-MIT.txt) |
+| [StructureLib](https://github.com/GTNewHorizons/StructureLib/tree/0b5f4aa433e52fc8338e7f26ab520044bbb69c27) (`1.4.47`) | Projector channel completion adapted from `GuiScreenConfigureChannels`. | StructureLib contributors; 2026 TenkeiTech | [GPL-3.0-only](LICENSE) |
 
 ## Adapted textures
 
@@ -38,4 +39,9 @@ Copyright (c) 2026 Aedial. License: [MIT](LICENSES/AE2-PowerTools-MIT.txt).
 The three interface upgrade cards use dedicated 32x32 RGBA textures derived from AE2's long upgrade-card frame, with no runtime tint. Their PNG metadata also records the source, copyright and license.
 AE2FluidCraft Rework `1.5.113-gtnh` remains an external dependency; the fluid-interface Mixin only wraps its existing insertion calls.
 The Better ME Requester references its textures at runtime; no AE2FC textures are copied or bundled.
+
+`assets/tenkeitech/textures/items/better_machine_projector.png` adapts
+[StructureLib 1.4.47's projector icon](https://github.com/GTNewHorizons/StructureLib/blob/0b5f4aa433e52fc8338e7f26ab520044bbb69c27/src/main/resources/assets/structurelib/textures/items/itemConstructableTrigger.png) with rainbow-animated highlights.
+Copyright: StructureLib contributors; 2026 TenkeiTech. License: [GPL-3.0-only](LICENSE).
+
 Functional ports and references are credited in [README.md](README.md).

@@ -8,6 +8,8 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "structurelib.BetterMachineProjectorSurvivalBuildMixin",
+    "gt5u.BetterMachineProjectorProjectionMixin",
     "ae2.BlockingFilterInterfaceMixin",
     "ae2.BlockingFilterUpgradeMixin",
     "ae2.BlockingFilterSlotMixin",
