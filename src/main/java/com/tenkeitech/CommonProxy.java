@@ -59,6 +59,11 @@ public class CommonProxy {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(miningHandler);
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new UniversalWandExperienceHandler());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new UniversalWandCombatHandler());
+        com.tenkeitech.universalwand.UniversalWandSoulboundHandler soulboundHandler = new com.tenkeitech.universalwand.UniversalWandSoulboundHandler();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(soulboundHandler);
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(soulboundHandler);
         com.tenkeitech.universalwand.UniversalWandProtectionHandler protectionHandler = new com.tenkeitech.universalwand.UniversalWandProtectionHandler();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(protectionHandler);
         cpw.mods.fml.common.FMLCommonHandler.instance()

@@ -178,6 +178,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 集采集、建筑、战斗和辅助功能于一体的工具。具有无限耐久、快速采集、**114514 攻击力**和主手 **+8 格触及距离**，
 可切换精准采集 X／时运 X，并常驻抢夺 X。默认在尚未领取的玩家登录时赠送一把，服务器可以关闭赠送。
+自带灵魂绑定，死亡复活后仍保留在身上，无需附魔。
 
 手持时按 **G** 打开设置，功能按类别排列，悬停按钮可查看简短说明。
 
@@ -501,6 +502,7 @@ Convert **1:1 in either direction** with the original Multiblock Structure Holog
 
 An all-purpose tool with infinite durability, fast mining, **114514 attack damage**, **+8 main-hand reach**,
 Silk Touch X or Fortune X, and permanent Looting X. By default, players receive one on login if they have never received the gift; servers can disable this.
+Built-in Soulbound keeps it with you after death and respawn, without an enchantment.
 Hold it and press **G** to configure its functions.
 
 | Category | Features |
