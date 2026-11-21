@@ -95,6 +95,7 @@ import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.objects.GTDualInputPattern;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTSplit;
+import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gregtech.common.tileentities.machines.IDualInputInventory;
 import gregtech.common.tileentities.machines.IHatchWatcher;
@@ -755,14 +756,18 @@ public class MTEHatchAutoTemplateInputME extends MTEHatchInputBus
     }
 
     /**
-     * The attached controller owns the actual voltage limit. A formed controller that cannot report
-     * a positive input tier is treated as a special machine without a voltage limit; an unformed hatch
-     * still exposes no recipes.
+     * Match the Power Tier on the controller scanner's Max Energy Input line. A formed controller
+     * without energy hatches or a positive input tier is treated as a special machine without a
+     * voltage limit; an unformed hatch still exposes no recipes.
      */
     public int getCurrentMachineTier() {
         long tier = -1;
         for (MTEMultiBlockBase controller : getPatternModeControllers()) {
-            long controllerTier = controller.getInputVoltageTier();
+            if (controller.mEnergyHatches.isEmpty() && controller.getExoticEnergyHatches()
+                .isEmpty()) return SPECIAL_MODE_TIER;
+            long inputVoltage = controller.getExoticEnergyHatches()
+                .isEmpty() ? controller.getMaxInputVoltage() : controller.getMaxInputEu();
+            long controllerTier = inputVoltage > 0 ? GTUtility.getTier(inputVoltage) : 0;
             if (controllerTier <= 0) return SPECIAL_MODE_TIER;
             tier = Math.max(tier, controllerTier);
         }

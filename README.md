@@ -71,7 +71,7 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 - **选择配方**：打开 GUI 可按产物名称搜索，逐项、按电压层或整页启用／禁用。批量操作仍包含被搜索隐藏的配方。
 - **配方锁**：退回材料按钮左侧可切换锁定；红色闭锁时仅可预览配方，绿色开锁后可继续启用／禁用。
 - **电路分页**：线缆机和卷板机各有七页独立设置与供料，所有已启用页面同时向 ME 提供配方。
-- **自动适配**：按机器实际电压筛选配方；适用的多模式机器可自动切换。缺少对应机器模式时，界面会提示并停用相关配方。
+- **自动适配**：按机器扫描器最大能源输入的电压等级筛选，支持双能源仓升压；成型机器无能源仓时显示特殊模式，不限制配方电压。适用的多模式机器可自动切换，缺少对应模式时会提示并停用相关配方。
 - **退回材料**：界面提供手动退回按钮；更换模板或修改配方开关前，会先将相关材料退回 ME，未退完则保持原设置。
 
 总线主要覆盖同一种材料的一进一出加工，例如铜锭加工为铜导线；跨材料转换和不符合要求的配方不会自动加入。
@@ -409,7 +409,8 @@ The GUI supports output-name search, individual recipe toggles, voltage-tier tog
 The lock to the left of the material-return button turns red for preview only; unlock it (green) to edit recipe settings.
 Wiremill and Bender buses have seven independently supplied pages; all enabled pages remain available to ME.
 
-Recipes follow the machine's voltage and supported modes. Only suitable single-input, single-output recipes for the same material are included.
+Recipes follow the Power Tier shown on the machine scanner's Max Energy Input line, including upgrades from two energy hatches, and supported modes. Formed machines without energy hatches show Special mode with no recipe voltage limit.
+Only suitable single-input, single-output recipes for the same material are included.
 Changing settings first returns affected materials to ME; if any remain, the settings stay unchanged. A separate button returns materials manually.
 
 **Mirror:** use a data stick to link a loaded bus in the same dimension. Right-click opens the host settings.
