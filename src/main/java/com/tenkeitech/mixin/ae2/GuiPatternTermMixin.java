@@ -22,16 +22,23 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.tenkeitech.Config;
+import com.tenkeitech.client.UniversalWandNeeButton;
+import com.tenkeitech.client.UniversalWandNeeGuideClient;
+import com.tenkeitech.client.UniversalWandNeePanel;
+import com.tenkeitech.patternupload.PatternUploadButton;
 import com.tenkeitech.patternupload.PatternUploadNetwork;
 import com.tenkeitech.patternupload.PatternUploadPanel;
 import com.tenkeitech.patternupload.PatternUploadRecipeContext;
 import com.tenkeitech.patternupload.PatternUploadScreenBridge;
 
+import appeng.api.config.ActionItems;
+import appeng.api.config.Settings;
 import appeng.api.storage.ITerminalHost;
 import appeng.client.gui.implementations.GuiMEMonitorable;
 import appeng.client.gui.implementations.GuiPatternTerm;
 import appeng.client.gui.widgets.GuiImgButton;
 import appeng.container.implementations.ContainerPatternTerm;
+import cpw.mods.fml.common.Loader;
 
 /** Narrow input/render bridge; the original AE container remains open and authoritative. */
 @Mixin(value = GuiPatternTerm.class, remap = false)
@@ -45,6 +52,12 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
     @Unique
     private GuiButton tenkeitech$uploadButton;
     @Unique
+    private GuiButton tenkeitech$neeSettingsButton;
+    @Unique
+    private UniversalWandNeePanel tenkeitech$neeSettings;
+    @Unique
+    private int tenkeitech$overlayMouseButtons;
+    @Unique
     private PatternUploadPanel tenkeitech$panel;
     @Unique
     private final PatternUploadRecipeContext tenkeitech$recipe = new PatternUploadRecipeContext();
@@ -55,15 +68,27 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
 
     @Inject(method = "initGui", at = @At("TAIL"), remap = true)
     private void tenkeitech$addUploadButton(CallbackInfo callback) {
+        if (Loader.isModLoaded("neenergistics")) {
+            if (tenkeitech$neeSettings == null) tenkeitech$neeSettings = new UniversalWandNeePanel(container);
+            // ECO places its buttons in InitGuiEvent.Post and counts hidden buttons too.
+            tenkeitech$neeSettingsButton = new UniversalWandNeeButton();
+            buttonList.add(tenkeitech$neeSettingsButton);
+        }
         if (!Config.enablePatternUpload) return;
         if (tenkeitech$panel == null) tenkeitech$panel = new PatternUploadPanel(container, tenkeitech$recipe);
-        tenkeitech$uploadButton = new GuiButton(0x5E01, 0, 0, 14, 14, "\u2191");
+        tenkeitech$uploadButton = new PatternUploadButton();
         buttonList.add(tenkeitech$uploadButton);
-        tenkeitech$positionButtons();
+        tenkeitech$positionUploadButton();
     }
 
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true, remap = true)
     private void tenkeitech$handleUploadButton(GuiButton button, CallbackInfo callback) {
+        if (button == tenkeitech$neeSettingsButton) {
+            if (Config.universalWandShowNeeTerminalButton && !tenkeitech$isTerminalOverlayOpen())
+                tenkeitech$neeSettings.open();
+            callback.cancel();
+            return;
+        }
         if (!Config.enablePatternUpload) return;
         if (button == tenkeitech$uploadButton) {
             if (GuiScreen.isShiftKeyDown()) PatternUploadNetwork.undoLastUpload(container.windowId);
@@ -74,8 +99,8 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, remap = true)
     private void tenkeitech$blockTerminalClicks(int mouseX, int mouseY, int mouseButton, CallbackInfo callback) {
-        if (tenkeitech$isPatternUploadOverlayOpen()) {
-            tenkeitech$panel.click(mouseX, mouseY, mouseButton);
+        if (tenkeitech$isTerminalOverlayOpen()) {
+            tenkeitech$handleTerminalOverlayClick(mouseX, mouseY, mouseButton);
             callback.cancel();
         }
     }
@@ -83,12 +108,17 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         tenkeitech$positionButtons();
-        if (tenkeitech$isPatternUploadOverlayOpen()) {
+        if (tenkeitech$isTerminalOverlayOpen()) {
             // Do not draw AE, its slots, carried stack, tooltips, or the NEI container draw hooks underneath.
-            tenkeitech$panel.draw(width, height, mouseX, mouseY);
+            if (tenkeitech$neeSettings != null && tenkeitech$neeSettings.isOpen())
+                tenkeitech$neeSettings.draw(width, height, mouseX, mouseY, partialTicks);
+            else tenkeitech$panel.draw(width, height, mouseX, mouseY);
             return;
         }
         super.drawScreen(mouseX, mouseY, partialTicks);
+        if (tenkeitech$overButton(tenkeitech$neeSettingsButton, mouseX, mouseY)) {
+            drawHoveringText(UniversalWandNeeGuideClient.tooltip(), mouseX, mouseY);
+        }
         if (tenkeitech$panel == null) return;
         if (tenkeitech$overButton(tenkeitech$uploadButton, mouseX, mouseY)) {
             drawHoveringText(
@@ -103,27 +133,78 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
 
     @Unique
     private void tenkeitech$positionButtons() {
+        tenkeitech$positionUploadButton();
+        if (tenkeitech$neeSettingsButton == null) return;
+        tenkeitech$neeSettingsButton.visible = encodeBtn != null && Config.universalWandShowNeeTerminalButton
+            && UniversalWandNeeGuideClient.findWandSlot() >= 0
+            && !container.isCraftingMode()
+            && !tenkeitech$isTerminalOverlayOpen();
+        // Hidden TT must never reserve a position in other mods' layout scans.
+        tenkeitech$neeSettingsButton.xPosition = -1000;
+        tenkeitech$neeSettingsButton.yPosition = -1000;
+        if (!tenkeitech$neeSettingsButton.visible) return;
+
+        int x = encodeBtn.xPosition + 31;
+        int y = encodeBtn.yPosition + encodeBtn.height + 2;
+        for (Object value : buttonList) {
+            if (value instanceof GuiImgButton pinButton && pinButton.getSetting() == Settings.ACTIONS
+                && pinButton.getCurrentValue() == ActionItems.PINS) {
+                x = pinButton.xPosition;
+                y = pinButton.yPosition + pinButton.height + 2;
+                break;
+            }
+        }
+
+        for (int guard = 0; guard < 16; guard++) {
+            GuiButton hit = null;
+            for (Object value : buttonList) {
+                if (value instanceof GuiButton button && button != tenkeitech$neeSettingsButton
+                    && button.visible
+                    && x < button.xPosition + button.width
+                    && button.xPosition < x + 16
+                    && y < button.yPosition + button.height
+                    && button.yPosition < y + 16) {
+                    hit = button;
+                    break;
+                }
+            }
+            if (hit == null) {
+                tenkeitech$neeSettingsButton.xPosition = x;
+                tenkeitech$neeSettingsButton.yPosition = y;
+                tenkeitech$neeSettingsButton.displayString = (UniversalWandNeeGuideClient.activeCount() > 0 ? "\u00a7a"
+                    : "\u00a77") + "TT";
+                return;
+            }
+            y = hit.yPosition + hit.height + 2;
+        }
+        // If an unusually crowded column exhausts the bound, leave TT hidden instead of overlapping.
+        tenkeitech$neeSettingsButton.visible = false;
+    }
+
+    @Unique
+    private void tenkeitech$positionUploadButton() {
         if (tenkeitech$panel == null || tenkeitech$uploadButton == null) return;
         tenkeitech$uploadButton.xPosition = encodeBtn.xPosition - tenkeitech$uploadButton.width - 2;
         tenkeitech$uploadButton.yPosition = encodeBtn.yPosition
             + (encodeBtn.height - tenkeitech$uploadButton.height) / 2;
-        tenkeitech$uploadButton.visible = tenkeitech$panel.showUploadButton();
+        tenkeitech$uploadButton.visible = tenkeitech$panel.showUploadButton() && !tenkeitech$isTerminalOverlayOpen();
         tenkeitech$uploadButton.enabled = !tenkeitech$panel.isOpen()
             && (tenkeitech$panel.hasPattern() || GuiScreen.isShiftKeyDown());
     }
 
     @Override
     protected void keyTyped(char character, int keyCode) {
-        if (!Config.enablePatternUpload) super.keyTyped(character, keyCode);
+        if (tenkeitech$neeSettings != null && tenkeitech$neeSettings.isOpen()) tenkeitech$neeSettings.key(keyCode);
+        else if (!Config.enablePatternUpload) super.keyTyped(character, keyCode);
         else if (keyCode == Keyboard.KEY_U && isCtrlKeyDown() && tenkeitech$panel != null)
             tenkeitech$panel.openSettings();
-        else if (tenkeitech$isPatternUploadOverlayOpen()) tenkeitech$panel.key(character, keyCode);
+        else if (tenkeitech$isTerminalOverlayOpen()) tenkeitech$panel.key(character, keyCode);
         else super.keyTyped(character, keyCode);
     }
 
     @Override
     public void handleKeyboardInput() {
-        if (!tenkeitech$isPatternUploadOverlayOpen()) {
+        if (!tenkeitech$isTerminalOverlayOpen()) {
             super.handleKeyboardInput();
             return;
         }
@@ -135,28 +216,38 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
 
     @Override
     public void handleMouseInput() {
-        if (!tenkeitech$isPatternUploadOverlayOpen()) {
+        int button = Mouse.getEventButton();
+        if (button >= 0 && button < 32
+            && !Mouse.getEventButtonState()
+            && (tenkeitech$overlayMouseButtons & 1 << button) != 0) {
+            tenkeitech$overlayMouseButtons &= ~(1 << button);
+            if (tenkeitech$neeSettings != null) tenkeitech$neeSettings.release(button);
+            return;
+        }
+        if (!tenkeitech$isTerminalOverlayOpen()) {
             super.handleMouseInput();
             return;
         }
-        if (Mouse.getEventDWheel() != 0) tenkeitech$panel.scroll(Mouse.getEventDWheel());
-        int button = Mouse.getEventButton();
+        if (Mouse.getEventDWheel() != 0 && tenkeitech$panel != null && tenkeitech$panel.isOpen())
+            tenkeitech$panel.scroll(Mouse.getEventDWheel());
         if (button < 0 || !Mouse.getEventButtonState()) return;
+        if (button < 32) tenkeitech$overlayMouseButtons |= 1 << button;
         int mouseX = Mouse.getEventX() * width / mc.displayWidth;
         int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
-        tenkeitech$panel.click(mouseX, mouseY, button);
+        tenkeitech$handleTerminalOverlayClick(mouseX, mouseY, button);
     }
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        if (!tenkeitech$isPatternUploadOverlayOpen()) {
+        if (!tenkeitech$isTerminalOverlayOpen()) {
             super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
         }
     }
 
     @Override
-    public boolean tenkeitech$isPatternUploadOverlayOpen() {
-        return Config.enablePatternUpload && tenkeitech$panel != null && tenkeitech$panel.isOpen();
+    public boolean tenkeitech$isTerminalOverlayOpen() {
+        return tenkeitech$neeSettings != null && tenkeitech$neeSettings.isOpen()
+            || Config.enablePatternUpload && tenkeitech$panel != null && tenkeitech$panel.isOpen();
     }
 
     @Override
@@ -165,8 +256,27 @@ public abstract class GuiPatternTermMixin extends GuiMEMonitorable implements Pa
     }
 
     @Override
-    public void tenkeitech$handlePatternUploadOverlayClick(int mouseX, int mouseY, int mouseButton) {
-        if (Config.enablePatternUpload && tenkeitech$panel != null) tenkeitech$panel.click(mouseX, mouseY, mouseButton);
+    public void tenkeitech$handleTerminalOverlayClick(int mouseX, int mouseY, int mouseButton) {
+        if (tenkeitech$neeSettings != null && tenkeitech$neeSettings.isOpen())
+            tenkeitech$neeSettings.click(mouseX, mouseY, mouseButton);
+        else if (Config.enablePatternUpload && tenkeitech$panel != null)
+            tenkeitech$panel.click(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    public void tenkeitech$tickNeeSettings() {
+        if (tenkeitech$neeSettings != null) tenkeitech$neeSettings.tick();
+    }
+
+    @Override
+    public void tenkeitech$closeNeeSettings() {
+        if (tenkeitech$neeSettings != null) tenkeitech$neeSettings.close();
+    }
+
+    @Override
+    public void tenkeitech$acceptNeeSettingsReply(
+        com.tenkeitech.universalwand.UniversalWandNetwork.NeeSettingsReply reply) {
+        if (tenkeitech$neeSettings != null) tenkeitech$neeSettings.accept(reply);
     }
 
     @Override

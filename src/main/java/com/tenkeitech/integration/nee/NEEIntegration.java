@@ -5,6 +5,7 @@
 package com.tenkeitech.integration.nee;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -92,7 +93,9 @@ public final class NEEIntegration {
                 && minecraft.thePlayer != null
                 && ModItems.isCutterFluidFilterEnabled(minecraft.thePlayer.inventory);
             if (!preserveCircuits && !recordCatalysts && !replaceCondensate && !filterCutterFluids)
-                return super.getRecipeInput(recipe, recipeIndex, identifier);
+                // NEE tries the next registered processor when a processor returns no inputs.
+                // Calling super here would still consume the recipe ahead of other integrations.
+                return Collections.emptyList();
 
             List<PositionedStack> recipeInputs = new ArrayList<>();
             for (PositionedStack positionedStack : recipe.getIngredientStacks(recipeIndex)) {

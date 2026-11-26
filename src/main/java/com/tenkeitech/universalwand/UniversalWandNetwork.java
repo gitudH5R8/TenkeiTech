@@ -11,6 +11,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 
 import com.tenkeitech.TenkeiTech;
+import com.tenkeitech.item.ItemUniversalWand;
 import com.tenkeitech.item.WandRightClickRouter;
 import com.tenkeitech.universalwand.building.BuildingContext;
 import com.tenkeitech.universalwand.building.BuildingContext.Position;
@@ -54,6 +55,145 @@ public final class UniversalWandNetwork {
         CHANNEL.registerMessage(RightClickGrantHandler.class, RightClickGrant.class, 17, Side.CLIENT);
         CHANNEL.registerMessage(RightClickFinishHandler.class, RightClickFinish.class, 18, Side.SERVER);
         CHANNEL.registerMessage(FeatureHandler.class, FeatureMessage.class, 19, Side.CLIENT);
+        CHANNEL.registerMessage(NeeGuideHandler.class, NeeGuideMessage.class, 20, Side.CLIENT);
+        CHANNEL.registerMessage(NeeSettingsHandler.class, NeeSettingsMessage.class, 21, Side.SERVER);
+        CHANNEL.registerMessage(NeeSettingsReplyHandler.class, NeeSettingsReply.class, 22, Side.CLIENT);
+    }
+
+    public static void sendNeeGuide(EntityPlayerMP player) {
+        CHANNEL.sendTo(new NeeGuideMessage(), player);
+    }
+
+    public static final class NeeGuideMessage implements IMessage {
+
+        public void fromBytes(ByteBuf buffer) {}
+
+        public void toBytes(ByteBuf buffer) {}
+    }
+
+    public static final class NeeGuideHandler implements IMessageHandler<NeeGuideMessage, IMessage> {
+
+        public IMessage onMessage(NeeGuideMessage message, MessageContext context) {
+            TenkeiTech.proxy.enqueueWandNeeGuide(context.netHandler);
+            return null;
+        }
+    }
+
+    public static void requestNeeSetting(int slot, int windowId, long requestId, ItemStack expected, int setting,
+        boolean enabled) {
+        CHANNEL.sendToServer(new NeeSettingsMessage(slot, windowId, requestId, expected, setting, enabled));
+    }
+
+    public static final class NeeSettingsMessage implements IMessage {
+
+        private int slot, windowId, setting;
+        private long requestId;
+        private ItemStack expected;
+        private boolean enabled;
+
+        public NeeSettingsMessage() {}
+
+        NeeSettingsMessage(int slot, int windowId, long requestId, ItemStack expected, int setting, boolean enabled) {
+            this.slot = slot;
+            this.windowId = windowId;
+            this.requestId = requestId;
+            this.expected = ItemStack.copyItemStack(expected);
+            this.setting = setting;
+            this.enabled = enabled;
+        }
+
+        public void fromBytes(ByteBuf buffer) {
+            slot = buffer.readInt();
+            windowId = buffer.readInt();
+            requestId = buffer.readLong();
+            expected = ByteBufUtils.readItemStack(buffer);
+            setting = buffer.readUnsignedByte();
+            enabled = buffer.readBoolean();
+        }
+
+        public void toBytes(ByteBuf buffer) {
+            buffer.writeInt(slot);
+            buffer.writeInt(windowId);
+            buffer.writeLong(requestId);
+            ByteBufUtils.writeItemStack(buffer, expected);
+            buffer.writeByte(setting);
+            buffer.writeBoolean(enabled);
+        }
+
+        void apply(EntityPlayerMP player) {
+            ItemStack current = slot >= 0 && slot < player.inventory.mainInventory.length
+                ? player.inventory.mainInventory[slot]
+                : null;
+            boolean accepted = false;
+            if (player.openContainer instanceof appeng.container.implementations.ContainerPatternTerm terminal
+                && terminal.windowId == windowId
+                && !terminal.isCraftingMode()
+                && terminal.canInteractWith(player)
+                && current != null
+                && current.stackSize > 0
+                && current.getItem() instanceof ItemUniversalWand
+                && ItemStack.areItemStacksEqual(current, expected)) {
+                accepted = switch (setting) {
+                    case 0 -> ItemUniversalWand.setCircuitPreserverEnabled(player, current, enabled);
+                    case 1 -> ItemUniversalWand.setCatalystRecorderEnabled(player, current, enabled);
+                    case 2 -> ItemUniversalWand.setCondensateReplacementEnabled(player, current, enabled);
+                    case 3 -> ItemUniversalWand.setCutterFluidFilterEnabled(player, current, enabled);
+                    default -> false;
+                };
+            }
+            if (!accepted) player.sendContainerToPlayer(player.inventoryContainer);
+            CHANNEL.sendTo(new NeeSettingsReply(slot, windowId, requestId, accepted, current), player);
+        }
+    }
+
+    public static final class NeeSettingsHandler implements IMessageHandler<NeeSettingsMessage, IMessage> {
+
+        public IMessage onMessage(NeeSettingsMessage message, MessageContext context) {
+            UniversalWandActions.requestNeeSettings(context.getServerHandler().playerEntity, message);
+            return null;
+        }
+    }
+
+    public static final class NeeSettingsReply implements IMessage {
+
+        public int slot, windowId;
+        public long requestId;
+        public boolean accepted;
+        public ItemStack stack;
+
+        public NeeSettingsReply() {}
+
+        NeeSettingsReply(int slot, int windowId, long requestId, boolean accepted, ItemStack stack) {
+            this.slot = slot;
+            this.windowId = windowId;
+            this.requestId = requestId;
+            this.accepted = accepted;
+            this.stack = ItemStack.copyItemStack(stack);
+        }
+
+        public void fromBytes(ByteBuf buffer) {
+            slot = buffer.readInt();
+            windowId = buffer.readInt();
+            requestId = buffer.readLong();
+            accepted = buffer.readBoolean();
+            stack = ByteBufUtils.readItemStack(buffer);
+        }
+
+        public void toBytes(ByteBuf buffer) {
+            buffer.writeInt(slot);
+            buffer.writeInt(windowId);
+            buffer.writeLong(requestId);
+            buffer.writeBoolean(accepted);
+            ByteBufUtils.writeItemStack(buffer, stack);
+        }
+    }
+
+    public static final class NeeSettingsReplyHandler implements IMessageHandler<NeeSettingsReply, IMessage> {
+
+        public IMessage onMessage(NeeSettingsReply message, MessageContext context) {
+            TenkeiTech.proxy.enqueueWandNeeSettingsReply(message, context.netHandler);
+            return null;
+        }
     }
 
     public static void syncFeatures(EntityPlayerMP player, long mask) {

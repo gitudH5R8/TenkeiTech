@@ -466,6 +466,11 @@ public final class ItemUniversalWand extends Item
 
     @Override
     public void onUpdate(ItemStack stack, World world, Entity entity, int slot, boolean held) {
+        if (!world.isRemote && entity instanceof EntityPlayerMP player
+            && slot >= 0
+            && slot < player.inventory.mainInventory.length
+            && player.inventory.mainInventory[slot] == stack)
+            com.tenkeitech.universalwand.UniversalWandNeeGuide.onCarry(player);
         if (!world.isRemote && sanitizeDisabledFeatures(stack) && entity instanceof EntityPlayer player)
             player.inventory.markDirty();
         if (!world.isRemote && held && entity instanceof EntityPlayerMP player)
@@ -1158,19 +1163,35 @@ public final class ItemUniversalWand extends Item
     }
 
     public static boolean setCutterFluidFilterEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
-        return setBooleanSetting(player, expected, "filterCutterFluids", enabled);
+        return setTenkeiSetting(player, expected, "filterCutterFluids", enabled);
     }
 
     public static boolean setCircuitPreserverEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
-        return setBooleanSetting(player, expected, "preserveProgrammedCircuits", enabled);
+        return setTenkeiSetting(player, expected, "preserveProgrammedCircuits", enabled);
     }
 
     public static boolean setCatalystRecorderEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
-        return setBooleanSetting(player, expected, "recordCatalysts", enabled);
+        return setTenkeiSetting(player, expected, "recordCatalysts", enabled);
     }
 
     public static boolean setCondensateReplacementEnabled(EntityPlayer player, ItemStack expected, boolean enabled) {
-        return setBooleanSetting(player, expected, "replaceCondensateWithSource", enabled);
+        return setTenkeiSetting(player, expected, "replaceCondensateWithSource", enabled);
+    }
+
+    public static int getEnabledNeeSettingCount(ItemStack stack) {
+        return (isCircuitPreserverEnabled(stack) ? 1 : 0) + (isCatalystRecorderEnabled(stack) ? 1 : 0)
+            + (isCondensateReplacementEnabled(stack) ? 1 : 0)
+            + (isCutterFluidFilterEnabled(stack) ? 1 : 0);
+    }
+
+    private static boolean setTenkeiSetting(EntityPlayer player, ItemStack expected, String key, boolean enabled) {
+        if (player == null || expected == null
+            || expected.stackSize <= 0
+            || !(expected.getItem() instanceof ItemUniversalWand)) return false;
+        for (ItemStack carried : player.inventory.mainInventory) {
+            if (carried == expected) return writeBooleanSetting(player, expected, key, enabled);
+        }
+        return false;
     }
 
     private static boolean readTenkeiSetting(ItemStack stack, String key) {
@@ -1187,10 +1208,15 @@ public final class ItemUniversalWand extends Item
 
     private static boolean setBooleanSetting(EntityPlayer player, ItemStack expectedStack, String key,
         boolean enabled) {
-        if (!UniversalWandFeature.canChange(key)) return false;
         if (player == null || expectedStack == null
             || player.getHeldItem() != expectedStack
             || !(expectedStack.getItem() instanceof ItemUniversalWand)) return false;
+        return writeBooleanSetting(player, expectedStack, key, enabled);
+    }
+
+    private static boolean writeBooleanSetting(EntityPlayer player, ItemStack expectedStack, String key,
+        boolean enabled) {
+        if (!UniversalWandFeature.canChange(key)) return false;
         NBTTagCompound root = expectedStack.getTagCompound();
         if (root == null) root = new NBTTagCompound();
         NBTTagCompound settings = getSettings(expectedStack);

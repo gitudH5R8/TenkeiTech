@@ -21,8 +21,8 @@ public abstract class GuiPatternTermExMixin {
     private void tenkeitech$blockExtendedTerminalClicks(int mouseX, int mouseY, int mouseButton,
         CallbackInfo callback) {
         PatternUploadScreenBridge bridge = (PatternUploadScreenBridge) this;
-        if (!bridge.tenkeitech$isPatternUploadOverlayOpen()) return;
-        bridge.tenkeitech$handlePatternUploadOverlayClick(mouseX, mouseY, mouseButton);
+        if (!bridge.tenkeitech$isTerminalOverlayOpen()) return;
+        bridge.tenkeitech$handleTerminalOverlayClick(mouseX, mouseY, mouseButton);
         callback.cancel();
     }
 
@@ -30,7 +30,7 @@ public abstract class GuiPatternTermExMixin {
     private void tenkeitech$blockExtendedTerminalDrag(int mouseX, int mouseY, int clickedMouseButton,
         long timeSinceLastClick, CallbackInfo callback) {
         PatternUploadScreenBridge bridge = (PatternUploadScreenBridge) this;
-        if (bridge.tenkeitech$isPatternUploadOverlayOpen()) callback.cancel();
+        if (bridge.tenkeitech$isTerminalOverlayOpen()) callback.cancel();
     }
 
     @Inject(
@@ -40,6 +40,6 @@ public abstract class GuiPatternTermExMixin {
         remap = true)
     private void tenkeitech$blockExtendedTerminalScrolling(CallbackInfo callback) {
         PatternUploadScreenBridge bridge = (PatternUploadScreenBridge) this;
-        if (bridge.tenkeitech$isPatternUploadOverlayOpen()) callback.cancel();
+        if (bridge.tenkeitech$isTerminalOverlayOpen()) callback.cancel();
     }
 }

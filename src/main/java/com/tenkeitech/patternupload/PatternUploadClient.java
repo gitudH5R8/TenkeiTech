@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.common.MinecraftForge;
 
 import com.tenkeitech.Config;
 import com.tenkeitech.TenkeiTech;
@@ -38,7 +36,6 @@ public final class PatternUploadClient {
         FMLCommonHandler.instance()
             .bus()
             .register(listener);
-        MinecraftForge.EVENT_BUS.register(listener);
     }
 
     public static void enqueuePage(PatternUploadNetwork.TargetsPageMessage message) {
@@ -92,15 +89,4 @@ public final class PatternUploadClient {
             bridge.tenkeitech$tickPatternUpload();
     }
 
-    @SubscribeEvent
-    public void hideHudDuringUpload(RenderGameOverlayEvent.Pre event) {
-        if (event.type == RenderGameOverlayEvent.ElementType.ALL
-            && Minecraft.getMinecraft().currentScreen instanceof PatternUploadScreenBridge bridge
-            && bridge.tenkeitech$isPatternUploadOverlayOpen()) {
-            // Forge fires Pre(ALL) before setting up the GUI projection. Keep that setup when hiding the HUD,
-            // otherwise the exclusive upload controls are drawn with the world's perspective matrices.
-            Minecraft.getMinecraft().entityRenderer.setupOverlayRendering();
-            event.setCanceled(true);
-        }
-    }
 }

@@ -63,6 +63,7 @@ public class Config {
     public static volatile double universalWandMiningExhaustion = DEFAULT_WAND_MINING_EXHAUSTION;
     public static volatile boolean universalWandDropToPlayer = true;
     public static volatile boolean universalWandGrantOnFirstJoin = true;
+    public static volatile boolean universalWandShowNeeTerminalButton = true;
     public static volatile int universalWandSearchPositionsPerTick = 4096;
     public static volatile int universalWandGlobalSearchPositionsPerTick = 16384;
     public static volatile int universalWandGlobalBlocksPerTick = 128;
@@ -284,6 +285,9 @@ public class Config {
         universalWandGrantOnFirstJoin = configuration.getCategory(wandCategory("grantOnFirstJoin"))
             .get("grantOnFirstJoin")
             .getBoolean(true);
+        universalWandShowNeeTerminalButton = configuration.getCategory(wandCategory("showNeeTerminalButton"))
+            .get("showNeeTerminalButton")
+            .getBoolean(true);
         universalWandSearchPositionsPerTick = readWandBudget(configuration, "searchPositionsPerTick", 4096, 65536);
         universalWandGlobalSearchPositionsPerTick = readWandBudget(
             configuration,
@@ -437,6 +441,15 @@ public class Config {
             .setLanguageKey("tenkeitech.config.universalwand");
         configuration
             .get(
+                wandCategory("showNeeTerminalButton"),
+                "showNeeTerminalButton",
+                universalWandShowNeeTerminalButton,
+                "Client-only: show the TT shortcut in AE2 pattern terminals. Applies after saving. "
+                    + "Hiding the button does not change wand settings or enabled recipe helpers.")
+            .setDefaultValue(true)
+            .setLanguageKey("tenkeitech.config.universalwand.showNeeTerminalButton");
+        configuration
+            .get(
                 wandCategory("dropToPlayer"),
                 "dropToPlayer",
                 universalWandDropToPlayer,
@@ -560,6 +573,7 @@ public class Config {
     private static String wandCategory(String key) {
         switch (key) {
             case "grantOnFirstJoin":
+            case "showNeeTerminalButton":
                 return CATEGORY_UNIVERSAL_WAND + ".tools";
             case "aoeMaxTargets":
                 return CATEGORY_UNIVERSAL_WAND + ".combat";

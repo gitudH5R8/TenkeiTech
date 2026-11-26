@@ -20,6 +20,7 @@ public final class UniversalWandActions {
 
     public enum Action {
         OPEN_GUI,
+        SET_NEE_SETTING,
         BEDROCK,
         CHAIN_KEY
     }
@@ -30,15 +31,22 @@ public final class UniversalWandActions {
         final int dimension;
         final Action action;
         final int x, y, z;
+        final UniversalWandNetwork.NeeSettingsMessage neeSettings;
         int openingDelay = 2;
 
         Request(EntityPlayerMP player, int dimension, Action action, int x, int y, int z) {
+            this(player, dimension, action, x, y, z, null);
+        }
+
+        Request(EntityPlayerMP player, int dimension, Action action, int x, int y, int z,
+            UniversalWandNetwork.NeeSettingsMessage neeSettings) {
             this.player = player;
             this.dimension = dimension;
             this.action = action;
             this.x = x;
             this.y = y;
             this.z = z;
+            this.neeSettings = neeSettings;
         }
     }
 
@@ -53,6 +61,13 @@ public final class UniversalWandActions {
     public static void request(EntityPlayerMP player, Action action, int x, int y, int z) {
         REQUESTS.get(action)
             .put(player.getUniqueID(), new Request(player, player.dimension, action, x, y, z));
+    }
+
+    static void requestNeeSettings(EntityPlayerMP player, UniversalWandNetwork.NeeSettingsMessage settings) {
+        REQUESTS.get(Action.SET_NEE_SETTING)
+            .put(
+                player.getUniqueID(),
+                new Request(player, player.dimension, Action.SET_NEE_SETTING, 0, 0, 0, settings));
     }
 
     static void tick() {
@@ -71,6 +86,7 @@ public final class UniversalWandActions {
                         if (request.x >= 0 && request.x < 9 && player.inventory.currentItem == request.x)
                             ItemUniversalWand.openSettingsGui(player);
                     }
+                    case SET_NEE_SETTING -> request.neeSettings.apply(player);
                     case BEDROCK -> ItemUniversalWand.forceBedrock(player, request.x, request.y, request.z);
                     case CHAIN_KEY -> UniversalWandMiningHandler.setKeyHeld(player, request.x != 0);
                 }

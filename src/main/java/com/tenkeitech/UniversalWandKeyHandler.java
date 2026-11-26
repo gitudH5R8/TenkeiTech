@@ -60,6 +60,10 @@ public final class UniversalWandKeyHandler {
 
     private UniversalWandKeyHandler() {}
 
+    public static String getSettingsKeyName() {
+        return net.minecraft.client.settings.GameSettings.getKeyDisplayString(OPEN_GUI.getKeyCode());
+    }
+
     public static void init() {
         ClientRegistry.registerKeyBinding(OPEN_GUI);
         ClientRegistry.registerKeyBinding(FORCE_BEDROCK);

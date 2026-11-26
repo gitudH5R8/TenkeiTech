@@ -137,6 +137,11 @@ public class CommonProxy {
 
     public void enqueueWandUndoPreview(UniversalWandNetwork.UndoPreviewMessage message) {}
 
+    public void enqueueWandNeeGuide(net.minecraft.network.INetHandler connection) {}
+
+    public void enqueueWandNeeSettingsReply(UniversalWandNetwork.NeeSettingsReply message,
+        net.minecraft.network.INetHandler connection) {}
+
     public void enqueueWandBuildingSupply(UniversalWandNetwork.BuildingSupplyMessage message) {}
 
     public int getWandBuildingSupply(com.tenkeitech.universalwand.building.BuildingContext context,

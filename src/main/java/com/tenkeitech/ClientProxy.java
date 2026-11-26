@@ -16,6 +16,7 @@ import com.tenkeitech.patternmode.PatternModeTooltip;
 import com.tenkeitech.patternupload.PatternUploadClient;
 import com.tenkeitech.patternupload.PatternUploadNetwork;
 import com.tenkeitech.patternupload.PatternUploadPreferences;
+import com.tenkeitech.universalwand.UniversalWandNetwork;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -48,6 +49,11 @@ public class ClientProxy extends CommonProxy {
         PatternModeTooltip.init();
         AutoTemplateSearchInput.init();
         UniversalWandKeyHandler.init();
+        com.tenkeitech.client.UniversalWandNeeGuideClient neeGuide = new com.tenkeitech.client.UniversalWandNeeGuideClient();
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(neeGuide);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(neeGuide);
         com.tenkeitech.client.UniversalWandRightClickClient rightClick = new com.tenkeitech.client.UniversalWandRightClickClient();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(rightClick);
         cpw.mods.fml.common.FMLCommonHandler.instance()
@@ -124,6 +130,17 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void enqueuePatternUploadPage(PatternUploadNetwork.TargetsPageMessage message) {
         PatternUploadClient.enqueuePage(message);
+    }
+
+    @Override
+    public void enqueueWandNeeGuide(net.minecraft.network.INetHandler connection) {
+        com.tenkeitech.client.UniversalWandNeeGuideClient.enqueue(connection);
+    }
+
+    @Override
+    public void enqueueWandNeeSettingsReply(UniversalWandNetwork.NeeSettingsReply message,
+        net.minecraft.network.INetHandler connection) {
+        com.tenkeitech.client.UniversalWandNeeGuideClient.enqueueSettings(message, connection);
     }
 
     @Override

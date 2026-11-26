@@ -5,6 +5,7 @@
 package com.tenkeitech.gui;
 
 import java.util.Arrays;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,6 +14,7 @@ import net.minecraft.util.StatCollector;
 
 import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.value.IBoolValue;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.DrawableStack;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
@@ -180,6 +182,8 @@ public final class UniversalWandGui {
             "tenkeitech_wand_tenkei_config",
             true,
             (manager, handler) -> tenkeiPanel(player, expected, manager));
+        IntSyncValue neeCount = new IntSyncValue(() -> ItemUniversalWand.getEnabledNeeSettingCount(expected));
+        syncManager.syncValue("wand_nee_count", 0, neeCount);
         syncManager.syncValue("wand_aoe_size", 0, aoeSize);
         ParentWidget<?> tools = section("Tools", 8, 30, 234, 84)
             .child(enchantButton(player, expected, fortune, false).pos(6, 22))
@@ -298,10 +302,16 @@ public final class UniversalWandGui {
         ParentWidget<?> vanilla = section("Vanilla", 248, 240, 234, 44).child(stateButton("shears", shears).pos(6, 22))
             .child(stateButton("hoe", hoe).pos(119, 22));
         ParentWidget<?> tenkei = section("TenkeiTech", 248, 290, 234, 44).child(
-            new ButtonWidget<>().background(flatButton())
+            new ButtonWidget<>()
+                .background(new DynamicDrawable(() -> neeCount.getIntValue() > 0 ? activeButton() : flatButton()))
+                .hoverBackground(new DynamicDrawable(() -> neeCount.getIntValue() > 0 ? activeButton() : flatButton()))
                 .overlay(
-                    IKey.lang("tenkeitech.gui.universal_wand.tenkei_settings")
+                    IKey.dynamic(
+                        () -> StatCollector.translateToLocalFormatted(
+                            "tenkeitech.gui.universal_wand.tenkei_settings_count",
+                            neeCount.getIntValue()))
                         .color(0xFFFFFFFF))
+                .addTooltipLine(IKey.lang("tenkeitech.gui.universal_wand.nee_carried"))
                 .onMousePressed(button -> {
                     if (button != 0) return false;
                     tenkeiSettings.openPanel();
@@ -353,12 +363,17 @@ public final class UniversalWandGui {
                             .size(width - 12, 14));
     }
 
-    private static ToggleButton stateButton(String key, BooleanSyncValue value) {
+    private static ToggleButton stateButton(String key, IBoolValue<?> value) {
+        return stateButton(key, value, () -> true);
+    }
+
+    private static ToggleButton stateButton(String key, IBoolValue<?> value, BooleanSupplier editable) {
         return new ToggleButton() {
 
             @Override
             public Interactable.Result onMousePressed(int button) {
-                return controlAllowed(key) ? super.onMousePressed(button) : Interactable.Result.STOP;
+                return controlAllowed(key) && editable.getAsBoolean() ? super.onMousePressed(button)
+                    : Interactable.Result.STOP;
             }
 
             @Override
@@ -471,34 +486,52 @@ public final class UniversalWandGui {
             () -> ItemUniversalWand.isCutterFluidFilterEnabled(expected),
             value -> ItemUniversalWand.setCutterFluidFilterEnabled(player, expected, value)).allowC2S();
         manager.syncValue("tenkei_cutter_fluids", 0, cutterFluids);
+        return neeSettingsPanel(circuits, catalysts, condensate, cutterFluids, () -> true);
+    }
+
+    /** Shared by the synced wand page and the client-side terminal overlay. */
+    public static ModularPanel neeSettingsPanel(IBoolValue<?> circuits, IBoolValue<?> catalysts,
+        IBoolValue<?> condensate, IBoolValue<?> cutterFluids, BooleanSupplier editable) {
         return gregtech.api.modularui2.GTGuis.createPopUpPanel("tenkeitech_wand_tenkei_config", true, false)
             .background(new Rectangle().color(0xFFCDCDD5))
-            .size(280, 146)
+            .size(360, 194)
             .child(
                 new ParentWidget<>().background(new Rectangle().color(0xFFB0B2C5))
                     .pos(4, 4)
-                    .size(260, 18))
+                    .size(340, 18))
             .child(
                 new TextWidget<>(
                     IKey.lang("tenkeitech.gui.universal_wand.tenkei_settings")
                         .color(0xFF414156)).pos(8, 7)
-                            .size(244, 16))
+                            .size(324, 16))
             .child(
                 new ParentWidget<>().background(historyListBackground())
                     .pos(6, 28)
-                    .size(268, 112))
+                    .size(348, 160))
             .child(
-                stateButton("tenkei_circuits", circuits).pos(12, 36)
-                    .size(256, 18))
+                stateButton("tenkei_circuits", circuits, editable).pos(12, 32)
+                    .size(336, 18))
+            .child(neeDescription("tenkei_circuits.description", 52))
             .child(
-                stateButton("tenkei_catalysts", catalysts).pos(12, 62)
-                    .size(256, 18))
+                stateButton("tenkei_catalysts", catalysts, editable).pos(12, 72)
+                    .size(336, 18))
+            .child(neeDescription("tenkei_catalysts.description", 92))
             .child(
-                stateButton("tenkei_condensate", condensate).pos(12, 88)
-                    .size(256, 18))
+                stateButton("tenkei_condensate", condensate, editable).pos(12, 112)
+                    .size(336, 18))
+            .child(neeDescription("tenkei_condensate.description", 132))
             .child(
-                stateButton("tenkei_cutter_fluids", cutterFluids).pos(12, 114)
-                    .size(256, 18));
+                stateButton("tenkei_cutter_fluids", cutterFluids, editable).pos(12, 152)
+                    .size(336, 18))
+            .child(neeDescription("tenkei_cutter_fluids.description", 172));
+    }
+
+    private static TextWidget<?> neeDescription(String key, int y) {
+        return new TextWidget<>(
+            IKey.lang("tenkeitech.gui.universal_wand." + key)
+                .scale(0.85F)
+                .color(0xFF414156)).pos(12, y)
+                    .size(336, 14);
     }
 
     private static ModularPanel accelerationPanel(EntityPlayer player, ItemStack expected, PanelSyncManager manager,

@@ -236,8 +236,11 @@ TenkeiTech 是面向 **GregTech: New Horizons** 的附属模组。它添加大�
 
 ##### 样板辅助设置
 
-G 界面的 TenkeiTech 设置提供四项功能：保留编程电路、记录零数量催化剂、将凝聚态替换为原材料流体、
-过滤板材切割机配方中的流体。携带工具时对 NEE 写入配方生效；过滤流体只改变写入的样板，机器仍需要正常供液。
+手持按 G，在 TenkeiTech 分类打开“NEE 配方写入设置”，可调整保留编程电路、记录零数量催化剂、
+凝聚态替换为原材料流体和过滤切割流体。首次携带会提示用法，终端处理样板页的 **TT** 按钮可查看状态并覆盖显示设置，关闭后恢复原界面。
+可在模组配置的“万用工具 → Tools”中关闭“显示样板终端 TT 按钮”，仅隐藏本客户端的入口，仍可按 G 调整工具设置。
+放在主背包或快捷栏即可生效，仅影响之后写入的配方；与其他配方辅助冲突时可关闭相应选项，多把杖需分别设置。
+原材料流体用于凝聚态装配调试机；过滤切割流体后，机器仍需正常供液。
 
 ##### 常用默认按键
 
@@ -560,8 +563,12 @@ Turning the master switch off ends your acceleration tasks. Rates do not guarant
 
 ##### Pattern Helpers
 
-While carrying the wand, NEE recipe transfers can preserve programmed circuits, record zero-amount catalysts,
-replace condensate with source fluids, or omit Cutter fluids. Omitting fluids from a pattern does not remove the machine's actual fluid requirement.
+Hold the wand and press G, then open **NEE Recipe Writing Settings** under TenkeiTech to preserve programmed circuits,
+record zero-amount catalysts, replace condensate with source fluids, or omit Cutter fluids. A one-time hint introduces these options;
+the **TT** button in the terminal's processing pattern mode shows their status and opens a settings overlay. Closing it restores the original view.
+Disable **Show TT button in pattern terminals** under **Universal Wand → Tools** in the mod config to hide the local shortcut; G still opens wand settings.
+Keep the wand in your main inventory or hotbar. Only future transfers are affected; disable unwanted options if another recipe helper conflicts,
+and configure each carried wand separately. Source fluids are for Condensate Assembly Debug; Cutter machines still need their fluids.
 
 ##### Default Controls
 
